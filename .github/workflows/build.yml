@@ -1,9 +1,9 @@
-name: CI Pipeline
+name: Build
 
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     types: [opened, synchronize, reopened]
 
@@ -28,7 +28,7 @@ jobs:
       - run: npm --prefix webapp test -- --coverage
 
       # SonarQube analysis 
-      # - name: Analyze with SonarQube
-      #   uses: SonarSource/sonarqube-scan-action@master
-      #   env:
-      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - name: Analyze with SonarQube
+        uses: SonarSource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

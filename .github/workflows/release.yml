@@ -1,4 +1,4 @@
-name: Release Pipeline
+name: CI for UniEval-TFG
 
 on:
   release:
@@ -26,10 +26,10 @@ jobs:
       - run: npm --prefix webapp test -- --coverage
 
       # SonarQube analysis
-      # - name: Analyze with SonarQube
-      #   uses: SonarSource/sonarqube-scan-action@master
-      #   env:
-      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - name: Analyze with SonarQube
+        uses: SonarSource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   e2e-tests:
     runs-on: ubuntu-latest
@@ -60,7 +60,7 @@ jobs:
       - name: Publish GatewayService Docker Image
         uses: elgohr/Publish-Docker-Github-Action@v5
         with:
-          #name: your-dockerhub-username/gatewayservice
+          name: uo288499/UniEval-TFG/gatewayservice
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: ghcr.io
@@ -78,7 +78,7 @@ jobs:
       - name: Publish WebApp Docker Image
         uses: elgohr/Publish-Docker-Github-Action@v5
         with:
-          #name: your-dockerhub-username/webapp
+          name: uo288499/UniEval-TFG/webapp
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: ghcr.io
@@ -97,7 +97,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           user: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
-          #command: |
-           # wget https://raw.githubusercontent.com/your-github-username/UniEval-TFG/master/docker-compose.yml -O docker-compose.yml
-           # docker compose --profile prod down
-           # docker compose --profile prod up -d --pull always
+          command: |
+            wget https://raw.githubusercontent.com/uo288499/UniEval-TFG/main/docker-compose.yml -O docker-compose.yml
+            docker compose --profile prod down
+            docker compose --profile prod up -d --pull always

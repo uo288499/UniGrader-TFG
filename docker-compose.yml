@@ -1,7 +1,7 @@
 services:
   gatewayservice:
     container_name: gatewayservice-UniEval
-    #image: link de github?:latest
+    image: ghcr.io/uo288499/UniEval-TFG/gatewayservice:latest
     profiles: ["dev", "prod"]
     build:
       context: ./gatewayservice
@@ -15,7 +15,7 @@ services:
       
   webapp:
     container_name: webapp-UniEval
-    #image: link de github?:latest
+    image: ghcr.io/uo288499/UniEval-TFG/webapp:latest
     profiles: ["dev", "prod"]
     build: 
       context: ./webapp
