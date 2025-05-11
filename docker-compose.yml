@@ -1,0 +1,32 @@
+services:
+  gatewayservice:
+    container_name: gatewayservice-UniEval
+    #image: link de github?:latest
+    profiles: ["dev", "prod"]
+    build:
+      context: ./gatewayservice
+    ports:
+      - "8000:8000"
+    networks:
+      - mynetwork
+    environment:
+      NODE_ENV: production
+      PORT: 8000
+      
+  webapp:
+    container_name: webapp-UniEval
+    #image: link de github?:latest
+    profiles: ["dev", "prod"]
+    build: 
+      context: ./webapp
+    depends_on:
+      - gatewayservice
+    ports:
+      - "80:3000"
+    environment:
+      NODE_ENV: production
+      GATEWAY_URL: http://gatewayservice:8000
+
+networks:
+  mynetwork:
+    driver: bridge
