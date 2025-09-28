@@ -1,0 +1,170 @@
+/*
+ * Global Stylesheet for Applications.
+ *
+ * This file establishes a design system based on CSS variables for
+ * a flexible and accessible theme management.
+ *
+ * Contains:
+ * - Default theme variables.
+ * - Variables for accessibility modes (color blindness, large text).
+ * - Base styles for HTML elements.
+ * - Overrides for Material-UI (MUI) components.
+ */
+
+/* ======================================= */
+/* DEFAULT THEME VARIABLES (:root)   */
+/* ======================================= */
+:root {
+  /* Palette colors */
+  --color-neutral-100: #ffffff;
+  --color-neutral-200: #f4f4f5;
+  --color-neutral-300: #e5e5e5;
+  --color-neutral-400: #d4d4d4;
+  --color-neutral-500: #737373;
+  --color-neutral-600: #525252;
+  --color-neutral-700: #404040;
+  --color-neutral-800: #262626;
+  --color-neutral-900: #171717;
+
+  /* Functional (brand) colors */
+  --brand-primary: #1976d2; /* Default Material-UI Blue */
+  --brand-primary-foreground: #ffffff;
+  --brand-secondary: #4caf50; /* Default Material-UI Green */
+  --brand-secondary-foreground: #ffffff;
+  --brand-accent: #ff9800; /* Default Material-UI Orange */
+  --brand-accent-foreground: #111111;
+
+  /* State colors */
+  --state-success: #2e7d32;
+  --state-warning: #ed6c02;
+  --state-error: #d32f2f;
+
+  /* Application colors */
+  --background-color: var(--color-neutral-100);
+  --text-color: var(--color-neutral-900);
+  --card-background: var(--color-neutral-200);
+  --card-text-color: var(--color-neutral-900);
+  --border-color: var(--color-neutral-400);
+
+  /* Typography */
+  --font-base-size: 16px;
+  --font-base-line-height: 1.5;
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+
+/* =============================== */
+/* ACCESSIBILITY AND THEMES    */
+/* =============================== */
+
+/* Color blindness mode (high-contrast colors) */
+.color-blind {
+  --brand-primary: #4a90e2; /* Light blue */
+  --brand-primary-foreground: #000000;
+  --brand-secondary: #f5a623; /* Orange/Yellow */
+  --brand-secondary-foreground: #000000;
+  --brand-accent: #d0021b; /* Light red */
+  --brand-accent-foreground: #ffffff;
+
+  --background-color: #000000;
+  --text-color: #ffffff;
+  --card-background: #1a1a1a;
+  --card-text-color: #ffffff;
+  --border-color: #555555;
+}
+
+/* Large text mode for improved readability */
+.large-text {
+  --font-base-size: 20px;
+  --font-base-line-height: 1.75;
+}
+
+/* =============================== */
+/* GLOBAL STYLES          */
+/* =============================== */
+body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-size: var(--font-base-size);
+  line-height: var(--font-base-line-height);
+  font-family: var(--font-family);
+  transition: all 0.3s ease-in-out;
+  margin: 0;
+  padding: 0;
+}
+
+/* Typography styles for ensuring consistency */
+h1, h2, h3, h4, h5, h6, p, span, li, a, button {
+  color: var(--text-color);
+  line-height: var(--font-base-line-height);
+}
+
+h1, .MuiTypography-h1 { font-size: calc(var(--font-base-size) * 2.5); }
+h2, .MuiTypography-h2 { font-size: calc(var(--font-base-size) * 2); }
+h3, .MuiTypography-h3 { font-size: calc(var(--font-base-size) * 1.75); }
+h4, .MuiTypography-h4 { font-size: calc(var(--font-base-size) * 1.5); }
+h5, .MuiTypography-h5 { font-size: calc(var(--font-base-size) * 1.25); }
+h6, .MuiTypography-h6 { font-size: calc(var(--font-base-size) * 1.1); }
+p, .MuiTypography-body1 { font-size: var(--font-base-size); }
+
+/* =========================================== */
+/* OVERRIDES FOR MUI AND OTHER COMPONENTS     */
+/* =========================================== */
+.MuiAppBar-root, .AppBar-root {
+  background-color: var(--brand-primary) !important;
+  color: var(--brand-primary-foreground) !important;
+}
+
+.MuiButton-containedPrimary {
+  background-color: var(--brand-primary);
+  color: var(--brand-primary-foreground);
+}
+
+.MuiButton-containedPrimary:hover {
+  background-color: var(--brand-primary);
+  filter: brightness(0.85); /* Darkens for hover */
+}
+
+.MuiButton-containedSecondary {
+  background-color: var(--brand-secondary);
+  color: var(--brand-secondary-foreground);
+}
+
+.MuiButton-containedSecondary:hover {
+  background-color: var(--brand-secondary);
+  filter: brightness(0.85);
+}
+
+.MuiButton-textPrimary, .MuiButton-outlinedPrimary {
+  color: var(--brand-primary);
+}
+
+/* Styles for MuiPaper, which is the container for Menu, Drawer, and others */
+.MuiPaper-root {
+  background-color: var(--card-background);
+  color: var(--card-text-color);
+  border: 1px solid var(--border-color);
+}
+
+/*
+ * Overrides MUI font sizes for large text mode.
+ * The use of '!important' is necessary to override MUI's inline styles.
+ */
+.large-text .MuiButton-root,
+.large-text .MuiMenuItem-root,
+.large-text .MuiInputBase-root,
+.large-text .MuiInputLabel-root {
+  font-size: var(--font-base-size) !important;
+}
+
+.large-text .MuiToolbar-root {
+  min-height: 64px !important;
+}
+
+/*
+ * Defines the size of icons in large text mode.
+ * MUI icons are SVG, so their size is controlled by the font-size attribute.
+ */
+.large-text .MuiSvgIcon-root {
+  font-size: calc(var(--font-base-size) * 1.5) !important;
+}

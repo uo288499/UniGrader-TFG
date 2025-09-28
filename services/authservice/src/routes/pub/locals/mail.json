@@ -1,0 +1,11 @@
+{
+  "en": {
+    "subject": "Password Reset for UniGrader",
+    "html": "<p>You are receiving this because you (or someone else) have requested the reset of the password for your account.</p><p>Please click on the following link, or paste this into your browser to complete the process:</p><a href=\"{resetLink}\">{resetLink}</a><p>If you did not request this, please ignore this email and your password will remain unchanged.</p>"
+  },
+  "es": {
+    "subject": "Restablecimiento de contraseña para UniGrader",
+    "html": "<p>Recibes este correo porque tú (o alguien más) ha solicitado restablecer la contraseña de tu cuenta.</p><p>Por favor, haz clic en el siguiente enlace, o pégalo en tu navegador para completar el proceso:</p><a href=\"{resetLink}\">{resetLink}</a><p>Si no has solicitado esto, por favor, ignora este correo y tu contraseña permanecerá sin cambios.</p>"
+
+  }
+}

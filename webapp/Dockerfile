@@ -5,17 +5,14 @@ FROM node:22
 WORKDIR /usr/src/app
 
 # Copy package.json and package-lock.json to the working directory
-COPY package*.json ./
+COPY ./webapp/package*.json ./
 
 # Install dependencies
 RUN npm install --ignore-scripts --omit=dev
 
-ARG API_URI="http://gatewayservice:8000"
-ENV GATEWAY_URL=$API_URI
-
 # Copy files to the working directory
-COPY ./src ./src
-COPY ./public ./public
+COPY ./webapp/src ./src
+COPY ./webapp/public ./public
 
 # Create an optimized version of the webapp
 RUN npm run build && npm install --ignore-scripts -g serve --production

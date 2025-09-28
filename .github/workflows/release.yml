@@ -1,4 +1,4 @@
-name: CI for UniEval-TFG
+name: CI for UniGrader-TFG
 
 on:
   release:
@@ -18,12 +18,24 @@ jobs:
           node-version: 22
 
       # Install dependencies for each service
+      - run: npm --prefix services/packages/common ci
       - run: npm --prefix gatewayservice ci
       - run: npm --prefix webapp ci
+      - run: npm --prefix services/authservice ci
+      - run: npm --prefix services/academicservice ci
+      - run: npm --prefix services/evalservice ci
+      - run: npm --prefix services/gradeservice ci
+      - run: npm --prefix services/auditservice ci
 
       # Run tests with coverage for each service
+      - run: npm --prefix services/packages/common test -- --coverage
       - run: npm --prefix gatewayservice test -- --coverage
       - run: npm --prefix webapp test -- --coverage
+      - run: npm --prefix services/authservice test -- --coverage
+      - run: npm --prefix services/academicservice test -- --coverage
+      - run: npm --prefix services/evalservice test -- --coverage
+      - run: npm --prefix services/gradeservice test -- --coverage
+      - run: npm --prefix services/auditservice test -- --coverage
 
       # SonarQube analysis
       - name: Analyze with SonarQube
@@ -40,8 +52,14 @@ jobs:
         with:
           node-version: 22
 
+      - run: npm --prefix services/packages/common ci
       - run: npm --prefix gatewayservice ci
       - run: npm --prefix webapp ci
+      - run: npm --prefix services/authservice ci
+      - run: npm --prefix services/academicservice ci
+      - run: npm --prefix services/evalservice ci
+      - run: npm --prefix services/gradeservice ci
+      - run: npm --prefix services/auditservice ci
 
       - run: npm --prefix webapp run build
         env:
@@ -60,7 +78,7 @@ jobs:
       - name: Publish GatewayService Docker Image
         uses: elgohr/Publish-Docker-Github-Action@v5
         with:
-          name: uo288499/UniEval-TFG/gatewayservice
+          name: uo288499/UniGrader-TFG/gatewayservice
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: ghcr.io
@@ -78,11 +96,101 @@ jobs:
       - name: Publish WebApp Docker Image
         uses: elgohr/Publish-Docker-Github-Action@v5
         with:
-          name: uo288499/UniEval-TFG/webapp
+          name: uo288499/UniGrader-TFG/webapp
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: ghcr.io
           dockerfile: webapp/Dockerfile
+
+  docker-push-authservice:
+    name: Push AuthService Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    needs: [e2e-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish AuthService Docker Image
+        uses: elgohr/Publish-Docker-Github-Action@v5
+        with:
+          name: uo288499/UniGrader-TFG/authservice
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io
+          dockerfile: services/authservice/Dockerfile
+
+  docker-push-academicservice:
+    name: Push AcademicService Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    needs: [e2e-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish AcademicService Docker Image
+        uses: elgohr/Publish-Docker-Github-Action@v5
+        with:
+          name: uo288499/UniGrader-TFG/academicservice
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io
+          dockerfile: services/academicservice/Dockerfile
+
+  docker-push-evalservice:
+    name: Push EvalService Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    needs: [e2e-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish EvalService Docker Image
+        uses: elgohr/Publish-Docker-Github-Action@v5
+        with:
+          name: uo288499/UniGrader-TFG/evalservice
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io
+          dockerfile: services/evalservice/Dockerfile
+
+  docker-push-gradeservice:
+    name: Push GradeService Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    needs: [e2e-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish GradeService Docker Image
+        uses: elgohr/Publish-Docker-Github-Action@v5
+        with:
+          name: uo288499/UniGrader-TFG/gradeservice
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io
+          dockerfile: services/gradeservice/Dockerfile
+
+  docker-push-auditservice:
+    name: Push AuditService Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    needs: [e2e-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish AuditService Docker Image
+        uses: elgohr/Publish-Docker-Github-Action@v5
+        with:
+          name: uo288499/UniGrader-TFG/auditservice
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io
+          dockerfile: services/auditservice/Dockerfile
 
   deploy:
     name: Deploy to Production
@@ -90,6 +198,11 @@ jobs:
     needs:
       - docker-push-gatewayservice
       - docker-push-webapp
+      - docker-push-authservice
+      - docker-push-academicservice
+      - docker-push-evalservice
+      - docker-push-gradeservice
+      - docker-push-auditservice
     steps:
       - name: Deploy over SSH
         uses: fifsky/ssh-action@master
@@ -98,6 +211,6 @@ jobs:
           user: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
           command: |
-            wget https://raw.githubusercontent.com/uo288499/UniEval-TFG/main/docker-compose.yml -O docker-compose.yml
+            wget https://raw.githubusercontent.com/uo288499/UniGrader-TFG/main/docker-compose.yml -O docker-compose.yml
             docker compose --profile prod down
             docker compose --profile prod up -d --pull always

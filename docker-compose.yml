@@ -1,10 +1,27 @@
 services:
+  mongodb:
+    container_name: mongodb-UniGrader
+    image: mongo
+    profiles: ["dev", "prod"]
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - mynetwork
+
   gatewayservice:
-    container_name: gatewayservice-UniEval
-    image: ghcr.io/uo288499/UniEval-TFG/gatewayservice:latest
+    container_name: gatewayservice-UniGrader
+    image: ghcr.io/uo288499/unigrader-tfg/gatewayservice:latest
     profiles: ["dev", "prod"]
     build:
       context: ./gatewayservice
+    depends_on:
+      - authservice
+      - academicservice
+      - evalservice
+      - auditservice
+      - gradeservice
     ports:
       - "8000:8000"
     networks:
@@ -12,10 +29,15 @@ services:
     environment:
       NODE_ENV: production
       PORT: 8000
-      
+      AUTH_SERVICE_URL: http://authservice:8001
+      ACADEMIC_SERVICE_URL: http://academicservice:8002
+      EVAL_SERVICE_URL: http://evalservice:8003
+      GRADE_SERVICE_URL: http://gradeservice:8004
+      AUDIT_SERVICE_URL: http://auditservice:8005
+
   webapp:
-    container_name: webapp-UniEval
-    image: ghcr.io/uo288499/UniEval-TFG/webapp:latest
+    container_name: webapp-UniGrader
+    image: ghcr.io/uo288499/unigrader-tfg/webapp:latest
     profiles: ["dev", "prod"]
     build: 
       context: ./webapp
@@ -26,6 +48,144 @@ services:
     environment:
       NODE_ENV: production
       GATEWAY_URL: http://gatewayservice:8000
+
+  authservice:
+    container_name: authservice-UniGrader
+    image: ghcr.io/uo288499/unigrader-tfg/authservice:latest
+    profiles: ["dev", "prod"]
+    build:
+      context: ./services/authservice
+    depends_on:
+      - mongodb
+    ports:
+      - "8001:8001"
+    networks:
+      - mynetwork
+    environment:
+      PORT: 8001
+      NODE_ENV: production
+      CRYPT_SECRET: ${CRYPT_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
+      MONGODB_URI: mongodb://mongodb:27017/unigrader_auth
+      ACADEMIC_URL: http://academicservice:8002
+      APP_BASE_URL: http://TODO:3000
+      ADMIN_PASS: ${ADMIN_PASS}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD}
+      EMAIL_USER: ${EMAIL_USER}
+      CLOUD_NAME: ${CLOUD_NAME}
+      API_KEY: ${API_KEY}
+      API_SECRET: ${API_SECRET}
+
+  academicservice:
+    container_name: academicservice-UniGrader
+    image: ghcr.io/uo288499/unigrader-tfg/academicservice:latest
+    profiles: ["dev", "prod"]
+    build:
+      context: ./services/academicservice
+    depends_on:
+      - mongodb
+    ports:
+      - "8002:8002"
+    networks:
+      - mynetwork
+    environment:
+      PORT: 8002
+      NODE_ENV: production
+      MONGODB_URI: mongodb://mongodb:27017/unigrader_academic
+      AUTH_URL: http://authservice:8001
+      CLOUD_NAME: ${CLOUD_NAME}
+      API_KEY: ${API_KEY}
+      API_SECRET: ${API_SECRET}
+
+  evalservice:
+    container_name: evalservice-UniGrader
+    image: ghcr.io/uo288499/unigrader-tfg/evalservice:latest
+    profiles: ["dev", "prod"]
+    build:
+      context: ./services/evalservice
+    depends_on:
+      - mongodb
+    ports:
+      - "8003:8003"
+    networks:
+      - mynetwork
+    environment:
+      PORT: 8003
+      NODE_ENV: production
+      MONGODB_URI: mongodb://mongodb:27017/unigrader_eval
+
+  gradeservice:
+    container_name: gradeservice-UniGrader
+    image: ghcr.io/uo288499/unigrader-tfg/gradeservice:latest
+    profiles: ["dev", "prod"]
+    build:
+      context: ./services/gradeservice
+    depends_on:
+      - mongodb
+    ports:
+      - "8004:8004"
+    networks:
+      - mynetwork
+    environment:
+      PORT: 8004
+      NODE_ENV: production
+      MONGODB_URI: mongodb://mongodb:27017/unigrader_grade
+
+  auditservice:
+    container_name: auditservice-UniGrader
+    image: ghcr.io/uo288499/unigrader-tfg/auditservice:latest
+    profiles: ["dev", "prod"]
+    build:
+      context: ./services/auditservice
+    depends_on:
+      - mongodb
+    ports:
+      - "8005:8005"
+    networks:
+      - mynetwork
+    environment:
+      PORT: 8005
+      NODE_ENV: production
+      MONGODB_URI: mongodb://mongodb:27017/unigrader_audit
+
+  prometheus:
+      image: prom/prometheus
+      container_name: prometheus-UniGrader
+      profiles: ["dev", "prod"]
+      networks:
+        - mynetwork
+      volumes:
+        - ./gatewayservice/monitoring/prometheus:/etc/prometheus
+        - prometheus_data:/prometheus
+      ports:
+        - "9090:9090"
+      depends_on:
+        - gatewayservice
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana-UniGrader
+    profiles: ["dev", "prod"]
+    networks:
+      - mynetwork
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./gatewayservice/monitoring/grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SERVER_HTTP_PORT=9091
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    ports:
+      - "9091:9091"
+    depends_on:
+      - prometheus
+
+volumes:
+  mongodb_data:
+  prometheus_data:
+  grafana_data:
 
 networks:
   mynetwork:

@@ -20,12 +20,24 @@ jobs:
           node-version: 22
 
       # Install dependencies for each service
+      - run: npm --prefix services/packages/common ci
       - run: npm --prefix gatewayservice ci
       - run: npm --prefix webapp ci
+      - run: npm --prefix services/authservice ci
+      - run: npm --prefix services/academicservice ci
+      - run: npm --prefix services/evalservice ci
+      - run: npm --prefix services/gradeservice ci
+      - run: npm --prefix services/auditservice ci
 
       # Run tests with coverage for each service
+      - run: npm --prefix services/packages/common test -- --coverage
       - run: npm --prefix gatewayservice test -- --coverage
       - run: npm --prefix webapp test -- --coverage
+      - run: npm --prefix services/authservice test -- --coverage
+      - run: npm --prefix services/academicservice test -- --coverage
+      - run: npm --prefix services/evalservice test -- --coverage
+      - run: npm --prefix services/gradeservice test -- --coverage
+      - run: npm --prefix services/auditservice test -- --coverage
 
       # SonarQube analysis 
       - name: Analyze with SonarQube
