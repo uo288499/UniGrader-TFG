@@ -62,9 +62,9 @@ beforeAll(() => {
   server = require("../src");
 });
 
-afterAll(() => {
-  mockServer.close();
-  server.close();
+afterAll(async () => {
+  if (mockServer) await new Promise(r => mockServer.close(r));
+  if (server) await new Promise(r => server.close(r));
 });
 
 describe("Gateway Service (with mock server)", () => {
