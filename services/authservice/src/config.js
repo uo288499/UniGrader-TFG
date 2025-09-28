@@ -10,8 +10,8 @@ module.exports = {
   
   // Configuration for the default global admin
   defaultAdmin: {
-    email: process.env.ADMIN_EMAIL,
-    password: process.env.ADMIN_PASS || "", // Will be hashed on creation
+    email: process.env.ADMIN_EMAIL || "test@mail.com",
+    password: process.env.ADMIN_PASS || "Contraseña.1", // Will be hashed on creation
   },
   
   /**
