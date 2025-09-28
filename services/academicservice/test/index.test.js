@@ -21,6 +21,12 @@ jest.mock("cloudinary", () => {
   };
 });
 
+jest.mock("axios", () => ({
+  get: jest.fn().mockResolvedValue({
+    data: [],
+  }),
+}));
+
 // ----------------------
 // SETUP DB & APP
 // ----------------------

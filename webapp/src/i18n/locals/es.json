@@ -45,7 +45,9 @@
     "genericError": "Ha ocurrido un error inesperado. Inténtalo de nuevo más tarde.",
     "notFound": "Recurso no encontrado.",
     "badRequest": "Solicitud incorrecta. Por favor, revisa tus datos.",
-    "accountsExist": "No puedes borrar universidades con cuentas vinculadas."
+    "accountsExist": "No puedes borrar universidades con cuentas vinculadas.",
+    "emailExists": "Ya existe una cuenta que usa este email.",
+    "IDExists": "Ya existe un usuario con este DNI/NIE."
   },
   "forgotPassword": {
     "title": "Restablecer contraseña",

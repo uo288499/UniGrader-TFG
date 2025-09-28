@@ -54,7 +54,12 @@ module.exports = (app) => {
 
         const existingAccount = await EmailAccount.findOne({ email });
         if (existingAccount) {
-          return res.status(400).json({ success: false, errorKey: "badRequest" });
+          return res.status(400).json({ success: false, errorKey: "emailExists" });
+        }
+
+        const existingUser = await User.findOne({ identityNumber });
+        if (existingUser) {
+          return res.status(400).json({ success: false, errorKey: "IDExists" });
         }
         
         let finalPhotoUrl = photoUrl;

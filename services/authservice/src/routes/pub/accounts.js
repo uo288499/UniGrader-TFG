@@ -97,6 +97,11 @@ module.exports = (app) => {
           userId,
         } = req.body;
 
+        const existingAccount = await EmailAccount.findOne({ email });
+        if (existingAccount) {
+          return res.status(400).json({ success: false, errorKey: "emailExists" });
+        }
+
         // Create EmailAccount
         const account = new EmailAccount({
           email,

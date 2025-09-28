@@ -45,7 +45,9 @@
     "genericError": "An unexpected error has occurred. Please try again later.",
     "notFound": "Resource not found.",
     "badRequest": "Bad request. Please check your input.",
-    "accountsExist": "Cannot delete university with linked accounts."
+    "accountsExist": "Cannot delete university with linked accounts.",
+    "emailExists": "An account with this email already exists.",
+    "IDExists": "A user with this ID number already exists."
   },
   "forgotPassword": {
     "title": "Reset Password",
