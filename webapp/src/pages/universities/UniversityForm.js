@@ -29,7 +29,7 @@ import { SessionContext } from "../../SessionContext";
 const GATEWAY_URL = process.env.GATEWAY_URL || "http://localhost:8000";
 
 const UniversityForm = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = Boolean(id);
@@ -39,8 +39,8 @@ const UniversityForm = () => {
     address: "",
     contactEmail: "",
     contactPhone: "",
-    smallLogoUrl: "", // URL de Cloudinary
-    largeLogoUrl: "", // URL de Cloudinary
+    smallLogoUrl: "",
+    largeLogoUrl: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -50,14 +50,12 @@ const UniversityForm = () => {
   const [errorKey, setErrorKey] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState("");
   const [successKey, setSuccessKey] = useState("");
-  
-  // Archivos a enviar 
+
   const [imageFiles, setImageFiles] = useState({
     smallLogo: null,
     largeLogo: null,
   });
-  
-  // URL de previsualización
+
   const [imagePreviews, setImagePreviews] = useState({
     smallLogo: "",
     largeLogo: "",
@@ -85,10 +83,9 @@ const UniversityForm = () => {
           `${GATEWAY_URL}/academic/universities/${id}`
         );
         const universityData = data.university;
-        
+
         setFormData(universityData);
-        
-        // Cargar URLs de Cloudinary como Previews al editar
+
         setImagePreviews({
           smallLogo: universityData.smallLogoUrl || "",
           largeLogo: universityData.largeLogoUrl || "",
@@ -102,66 +99,27 @@ const UniversityForm = () => {
     };
 
     if (isEditing) fetchUniversity();
-    
+
     if (!isEditing) {
       setImagePreviews({ smallLogo: "", largeLogo: "" });
       setImageFiles({ smallLogo: null, largeLogo: null });
     }
-    
   }, [id, isEditing, navigate, role, universityID]);
 
+  // Manage global success/error messages
   useEffect(() => {
     if (errorKey) {
       setSubmitError(t(errorKey));
+    } else {
+      setSubmitError("");
     }
 
     if (successKey) {
       setSubmitSuccess(t(successKey));
+    } else {
+      setSubmitSuccess("");
     }
-
-    if (Object.keys(errors).length > 0) {
-      const newErrors = {};
-      for (const key in errors) {
-        switch (key) {
-          case "name":
-            if (formData.name.trim().length === 0)
-              newErrors.name = t("universities.errorNameRequired");
-            else if (formData.name.trim().length < 3)
-              newErrors.name = t("universities.errorNameLength");
-            else if (formData.name.trim().length > 200)
-              newErrors.name = t("universities.errorNameMax");
-            break;
-          case "address":
-            if (formData.address && formData.address.length > 500)
-              newErrors.address = t("universities.errorAddressMax");
-            break;
-          case "contactEmail":
-            if (formData.contactEmail.length > 100)
-              newErrors.contactEmail = t("universities.errorEmailMax");
-            else if (
-              !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactEmail)
-            )
-              newErrors.contactEmail = t("universities.errorInvalidEmail");
-            break;
-          case "contactPhone":
-            if (formData.contactPhone.length > 30)
-              newErrors.contactPhone = t("universities.errorPhoneMax");
-            else if (
-              formData.contactPhone &&
-              !/^[+]?[0-9\s\-]{9,}$/.test(formData.contactPhone)
-            )
-              newErrors.contactPhone = t("universities.errorInvalidPhone");
-            break;
-          case "smallLogo":
-          case "largeLogo":
-            break;
-          default:
-            break;
-        }
-      }
-      setErrors(newErrors);
-    }
-  }, [t, i18n.resolvedLanguage, formData, errorKey, successKey]);
+  }, [errorKey, successKey, t]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -205,7 +163,10 @@ const UniversityForm = () => {
       value = value.replace(/\s/g, "").toLowerCase();
     }
     setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
+
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: "" }));
+    }
   };
 
   const handleImageUpload = (logoType) => (event) => {
@@ -231,29 +192,20 @@ const UniversityForm = () => {
     }
 
     setErrors((prev) => ({ ...prev, [logoType]: "" }));
-    
+
     const reader = new FileReader();
-    reader.onload = (e) => {
-      // Guardamos la cadena Base64 para el envío
-      setImageFiles((prev) => ({ ...prev, [logoType]: e.target.result }));
-      // Guardamos la cadena Base64 para la previsualización
-      setImagePreviews((prev) => ({ ...prev, [logoType]: e.target.result }));
-    };
-    // Leemos el archivo como Base64 (Data URL)
-    reader.readAsDataURL(file);
-    
-    // Limpiamos la URL de la DB si es que existía, ya que estamos subiendo un nuevo archivo.
-    setFormData((prev) => ({ ...prev, [`${logoType}Url`]: "" }));
+    reader.onload = (e) => {
+      setImageFiles((prev) => ({ ...prev, [logoType]: e.target.result }));
+      setImagePreviews((prev) => ({ ...prev, [logoType]: e.target.result }));
+    };
+    reader.readAsDataURL(file);
+
+    setFormData((prev) => ({ ...prev, [`${logoType}Url`]: "" }));
   };
 
   const handleRemoveImage = (logoType) => {
-    // Eliminamos el archivo local
     setImageFiles((prev) => ({ ...prev, [logoType]: null }));
-    // Eliminamos la previsualización
     setImagePreviews((prev) => ({ ...prev, [logoType]: "" }));
-    
-    // Forzamos la URL de la DB a una cadena vacía. 
-    // Esto le indica a la ruta PUT en el backend que debe BORRAR la imagen.
     setFormData((prev) => ({ ...prev, [`${logoType}Url`]: "" }));
 
     if (logoType === "smallLogo" && smallLogoInputRef.current) {
@@ -264,25 +216,21 @@ const UniversityForm = () => {
     }
   };
 
-
   const handleSubmit = async (event) => {
     event.preventDefault();
     setErrorKey("");
     setSuccessKey("");
-    setSubmitError("");
 
     if (!validateForm()) return;
 
     setLoading(true);
     try {
-      /// Crear el objeto JSON que se enviará
-      const dataToSend = {
-        ...formData, // Campos de texto y URLs de Cloudinary existentes
-        // Adjuntamos las cadenas Base64. 
-        smallLogoBase64: imageFiles.smallLogo, 
-        largeLogoBase64: imageFiles.largeLogo,
-      };
-      
+      const dataToSend = {
+        ...formData,
+        smallLogoBase64: imageFiles.smallLogo,
+        largeLogoBase64: imageFiles.largeLogo,
+      };
+
       let response;
       if (isEditing) {
         response = await axios.put(
@@ -298,14 +246,10 @@ const UniversityForm = () => {
         setSuccessKey("universities.created");
       }
 
-      // Actualizar el estado con el objeto de universidad devuelto
       const updatedUniversity = response.data.university;
       setFormData(updatedUniversity);
-      
-      // Después de subir/actualizar, limpiar los archivos locales
       setImageFiles({ smallLogo: null, largeLogo: null });
-      
-      // Si es creación, actualizar la URL del navegador y navegar
+
       if (!isEditing) {
         const newId = updatedUniversity._id || updatedUniversity.id;
         if (newId) {
@@ -342,7 +286,11 @@ const UniversityForm = () => {
 
   if (loading && isEditing && !submitSuccess) {
     return (
-      <Container data-testid="university-form-page" maxWidth="md" sx={{ mt: 4, mb: 4, textAlign: "center" }}>
+      <Container
+        data-testid="university-form-page"
+        maxWidth="md"
+        sx={{ mt: 4, mb: 4, textAlign: "center" }}
+      >
         <CircularProgress />
         <Typography variant="h6" sx={{ mt: 2 }}>
           {t("common.loadingData")}
