@@ -22,6 +22,13 @@ jest.mock("cloudinary", () => {
   };
 });
 
+jest.mock("nodemailer", () => {
+  const sendMailMock = jest.fn().mockResolvedValue(true); // simula envío exitoso
+  return {
+    createTransport: jest.fn(() => ({ sendMail: sendMailMock })),
+  };
+});
+
 // ----------------------
 // SETUP DB & APP
 // ----------------------
