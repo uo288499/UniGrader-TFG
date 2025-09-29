@@ -72,7 +72,7 @@ const UniversityForm = () => {
   // Load existing university data if editing
   useEffect(() => {
     if (role !== "global-admin" && universityID !== id) {
-      navigate("/");
+      navigate("/not-found");
       return;
     }
 
@@ -302,7 +302,7 @@ const UniversityForm = () => {
   return (
     <Container data-testid="university-form-page" maxWidth="md" sx={{ mt: 4, mb: 4 }}>
       <Box display="flex" alignItems="center" mb={3}>
-        <IconButton onClick={() => navigate("/universities")} sx={{ mr: 2 }}>
+        <IconButton onClick={() => role === "global-admin" ? navigate("/universities") : navigate("/")} sx={{ mr: 2 }}>
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h4" component="h1">
@@ -538,7 +538,7 @@ const UniversityForm = () => {
                 <Box display="flex" gap={2} justifyContent="flex-end" mt={3}>
                   <Button
                     variant="outlined"
-                    onClick={() => navigate("/universities")}
+                    onClick={() => role === "global-admin" ? navigate("/universities") : navigate("/")}
                     disabled={loading || deleting}
                   >
                     {t("common.cancel")}

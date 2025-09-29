@@ -53,4 +53,86 @@ describe("UniversityForm Page", () => {
       expect(screen.getByText(/errorNameRequired/i)).toBeInTheDocument();
     });
   });
+
+  it("updates form fields on input change", async () => {
+    ReactRouter.useParams.mockReturnValue({}); 
+
+    renderWithContext(<UniversityForm />);
+    const nameInput = await screen.findByLabelText(/universities.name/i);
+    const addressInput = screen.getByLabelText(/universities.address/i);
+    const emailInput = screen.getByLabelText(/universities.email/i);
+    const phoneInput = screen.getByLabelText(/universities.phone/i);
+
+    fireEvent.change(nameInput, { target: { value: "New University" } });
+    fireEvent.change(addressInput, { target: { value: "123 Main St" } });
+    fireEvent.change(emailInput, { target: { value: "test@example.com" } });
+    fireEvent.change(phoneInput, { target: { value: "+34123456789" } });
+
+    expect(nameInput.value).toBe("New University");
+    expect(addressInput.value).toBe("123 Main St");
+    expect(emailInput.value).toBe("test@example.com");
+    expect(phoneInput.value).toBe("+34123456789");
+  });
+
+  it("submits form successfully for creation", async () => {
+    ReactRouter.useParams.mockReturnValue({}); 
+
+    mockAxios.onPost(`${GATEWAY_URL}/academic/universities`).reply(200, {
+      university: { _id: "uni123", name: "Test Uni" },
+    });
+
+    renderWithContext(<UniversityForm />);
+
+    const nameInput = await screen.findByLabelText(/universities.name/i);
+    fireEvent.change(nameInput, { target: { value: "Test Uni" } });
+
+    const submitButton = screen.getByRole("button", { name: /create/i });
+
+    await act(async () => {
+      fireEvent.click(submitButton);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/universities.created/i)).toBeInTheDocument();
+    });
+  });
+
+  it("handles server error on submit", async () => {
+    ReactRouter.useParams.mockReturnValue({}); 
+
+    mockAxios.onPost(`${GATEWAY_URL}/academic/universities`).reply(500, {
+      errorKey: "serverError",
+    });
+
+    renderWithContext(<UniversityForm />);
+    const nameInput = await screen.findByLabelText(/universities.name/i);
+    fireEvent.change(nameInput, { target: { value: "Test Uni" } });
+
+    const submitButton = screen.getByRole("button", { name: /create/i });
+
+    await act(async () => fireEvent.click(submitButton));
+
+    await waitFor(() => {
+      expect(screen.getByText(/error.serverError/i)).toBeInTheDocument();
+    });
+  });
+
+  it("validates invalid email and phone", async () => {
+    ReactRouter.useParams.mockReturnValue({}); 
+
+    renderWithContext(<UniversityForm />);
+    const emailInput = await screen.findByLabelText(/universities.email/i);
+    const phoneInput = screen.getByLabelText(/universities.phone/i);
+
+    fireEvent.change(emailInput, { target: { value: "invalid-email" } });
+    fireEvent.change(phoneInput, { target: { value: "abc123" } });
+
+    const submitButton = screen.getByRole("button", { name: /create/i });
+    await act(async () => fireEvent.click(submitButton));
+
+    await waitFor(() => {
+      expect(screen.getByText(/errorInvalidEmail/i)).toBeInTheDocument();
+      expect(screen.getByText(/errorInvalidPhone/i)).toBeInTheDocument();
+    });
+  });
 });

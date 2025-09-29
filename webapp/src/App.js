@@ -46,9 +46,9 @@ function App({ themeMode, setThemeMode, isLargeTextMode, setIsLargeTextMode }) {
           <Route path="/universities/new" element={<PrivateRoute element={<UniversityForm /> } roles={["global-admin"]} />} />
           <Route path="/universities/:id" element={<PrivateRoute element={<UniversityForm/>} roles={["global-admin", "admin"]} />} />
           {/* Users Page */}
-          <Route path="/users" element={<PrivateRoute element={<Users />} roles={["global-admin"]} />} />
-          <Route path="/users/new" element={<PrivateRoute element={<UserForm />} roles={["global-admin"]} />} />
-          <Route path="/users/:id" element={<PrivateRoute element={<UserForm />} roles={["global-admin"]} />} />
+          <Route path="/users" element={<PrivateRoute element={<Users />} roles={["global-admin", "admin"]} />} />
+          <Route path="/users/new" element={<PrivateRoute element={<UserForm />} roles={["global-admin", "admin"]} />} />
+          <Route path="/users/:id" element={<PrivateRoute element={<UserForm />} roles={["global-admin", "admin"]} />} />
           {/* Not Existing Path */}
           <Route path="*" element={<NotFound />} />
         </Routes>

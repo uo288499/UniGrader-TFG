@@ -82,7 +82,7 @@ const Users = () => {
           const { data: uniData } = await axios.get(
             `${GATEWAY_URL}/academic/universities/${sessionUniversity}`
           );
-          setUniversities([uniData]);
+          setUniversities([uniData.university]);
           setFilters((prev) => ({ ...prev, university: sessionUniversity }));
         }
       } catch (err) {
@@ -95,7 +95,7 @@ const Users = () => {
     };
 
     fetchData();
-  }, [sessionRole, sessionUniversity]);
+  }, []);
 
   // Use useMemo to compute filtered users to avoid setState in useEffect
   const filteredUsers = useMemo(() => {

@@ -19,7 +19,7 @@ module.exports = (app) => {
         const { password: newPassword, accountId } = req.body;
 
         // Encuentra la cuenta por el ID del usuario
-        const account = await EmailAccount.findOne({ accountId });
+        const account = await EmailAccount.findById(accountId);
 
         if (!account) {
           return res.status(404).json({ success: false, errorKey: "notFound" });

@@ -55,7 +55,7 @@ module.exports = (app) => {
         });
       } else {
         // Return a JSON response with an error key for the frontend
-        res.status(401).json({ success: false, errorKey: "invalidCredentials" });
+        res.status(400).json({ success: false, errorKey: "invalidCredentials" });
       }
     }
   );

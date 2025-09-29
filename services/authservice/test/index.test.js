@@ -128,7 +128,7 @@ describe("Public Routes (Login / Verify)", () => {
       email: "testuser@test.com",
       password: "WrongPass123!"
     });
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);
   });
 
@@ -196,6 +196,27 @@ describe("Password Recovery / Change", () => {
     });
     expect(res.status).toBe(404);
   });
+
+  it("Change password successfully returns 200", async () => {
+    // Crear una cuenta de prueba
+    const { emailAccount } = await createTestUser();
+
+    // Llamar a la ruta de cambio de contraseña
+    const res = await request(app)
+      .post("/change-password")
+      .send({
+        password: "NewStrongPass123!",
+        accountId: emailAccount._id,
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+
+    // Verificar que la contraseña se actualizó en la DB
+    const updated = await EmailAccount.findById(emailAccount._id);
+    const valid = await argon2.verify(updated.password, "NewStrongPass123!", config.crypt);
+    expect(valid).toBe(true);
+  });
 });
 
 describe("Users CRUD", () => {
@@ -230,6 +251,14 @@ describe("Users CRUD", () => {
     const res = await request(app).get("/public/users");
     expect(res.status).toBe(200);
     expect(res.body.users.length).toBe(1);
+  });
+
+  it("Get user by ID", async () => {
+    const { testUser } = await createTestUser();
+    const res = await request(app).get(`/public/users/${testUser._id}`);
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.user.identityNumber).toBe("testuser1");
   });
 
   it("Update user", async () => {
@@ -276,6 +305,14 @@ describe("Accounts CRUD", () => {
     const res = await request(app).get("/public/accounts");
     expect(res.status).toBe(200);
     expect(res.body.accounts.length).toBe(1);
+  });
+
+  it("Get account by ID", async () => {
+    const { emailAccount } = await createTestUser();
+    const res = await request(app).get(`/public/accounts/${emailAccount._id}`);
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.account.email).toBe("testuser@test.com");
   });
 
   it("Delete account", async () => {

@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, userEvent } from "@testing-library/react";
 import axios from "axios";
 import MockAdapter from "axios-mock-adapter";
 import { BrowserRouter } from "react-router";
@@ -15,10 +15,7 @@ jest.mock("react-router", () => ({
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key) => key,
-    i18n: {
-      resolvedLanguage: "en",
-      changeLanguage: jest.fn(),
-    },
+    i18n: { resolvedLanguage: "en", changeLanguage: jest.fn() },
   }),
 }));
 
@@ -42,7 +39,7 @@ const mockUniversities = [
   },
 ];
 
-describe("Universities Page", () => {
+describe("Universities Page - Full Coverage", () => {
   beforeEach(() => {
     mockAxios.reset();
     mockNavigate.mockReset();
@@ -56,16 +53,13 @@ describe("Universities Page", () => {
     );
 
   it("renders loading and then universities list", async () => {
-    mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, {
-      universities: mockUniversities,
-    });
+    mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, { universities: mockUniversities });
 
     setup();
 
     // Loader
     expect(screen.getByRole("progressbar")).toBeInTheDocument();
 
-    // Esperar a que se renderice la tabla
     await waitFor(() => {
       expect(screen.getByText("Uni One")).toBeInTheDocument();
       expect(screen.getByText("Uni Two")).toBeInTheDocument();
@@ -73,9 +67,7 @@ describe("Universities Page", () => {
   });
 
   it("navigates to create new university when clicking button", async () => {
-    mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, {
-      universities: [],
-    });
+    mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, { universities: [] });
 
     setup();
 
@@ -87,9 +79,7 @@ describe("Universities Page", () => {
   });
 
   it("navigates to edit university when clicking edit icon", async () => {
-    mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, {
-      universities: mockUniversities,
-    });
+    mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, { universities: mockUniversities });
 
     setup();
 
@@ -99,20 +89,83 @@ describe("Universities Page", () => {
   });
 
   it("shows no results message if filter matches nothing", async () => {
-    mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, {
-      universities: mockUniversities,
-    });
+    mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, { universities: mockUniversities });
 
     setup();
 
     await waitFor(() => {
-      const nameFilter = screen.getByLabelText(/name/i);
-      fireEvent.change(nameFilter, { target: { value: "NonExisting" } });
+      fireEvent.change(screen.getByLabelText(/name/i), { target: { value: "NonExisting" } });
       expect(screen.getByText(/noResults/i)).toBeInTheDocument();
     });
   });
 
-  it("shows error and empty list when API fails", async () => {
+  it("applies all filters and resets correctly", async () => {
+    mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, { universities: mockUniversities });
+
+    setup();
+
+    await waitFor(() => screen.getByText("Uni One"));
+
+    fireEvent.change(screen.getByLabelText(/name/i), { target: { value: "Uni One" } });
+    fireEvent.change(screen.getByLabelText(/address/i), { target: { value: "Address 1" } });
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: "contact1" } });
+    fireEvent.change(screen.getByLabelText(/phone/i), { target: { value: "123456789" } });
+
+    await waitFor(() => {
+      expect(screen.getByText("Uni One")).toBeInTheDocument();
+      expect(screen.queryByText("Uni Two")).not.toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /resetFilters/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Uni One")).toBeInTheDocument();
+      expect(screen.getByText("Uni Two")).toBeInTheDocument();
+    });
+  });
+
+  it("renders university with icon when no smallLogoUrl", async () => {
+    mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, { universities: [{ _id: "u3", name: "Uni Three" }] });
+
+    setup();
+
+    await waitFor(() => screen.getByText("Uni Three"));
+    expect(screen.getByText("Uni Three")).toBeInTheDocument();
+  });
+
+  it("handles pagination correctly", async () => {
+    const bigList = Array.from({ length: 12 }, (_, i) => ({ _id: `u${i}`, name: `Uni ${i}` }));
+    mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, { universities: bigList });
+
+    setup();
+
+    // Espera a que se renderice la primera universidad
+    await waitFor(() => screen.getByText("Uni 0"));
+
+    // Pasa a la segunda página usando el botón de "next"
+    const nextPageButton = screen.getByLabelText("Go to next page");
+    fireEvent.click(nextPageButton);
+
+    await waitFor(() => expect(screen.getByText("Uni 5")).toBeInTheDocument());
+  });
+
+  it("filters multiple fields at the same time", async () => {
+    mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, { universities: mockUniversities });
+
+    setup();
+
+    await waitFor(() => screen.getByText("Uni One"));
+
+    fireEvent.change(screen.getByLabelText(/name/i), { target: { value: "Uni" } });
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: "contact2" } });
+
+    await waitFor(() => {
+      expect(screen.queryByText("Uni One")).not.toBeInTheDocument();
+      expect(screen.getByText("Uni Two")).toBeInTheDocument();
+    });
+  });
+
+  it("shows empty list when API fails", async () => {
     mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(500);
 
     setup();

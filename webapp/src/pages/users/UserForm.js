@@ -54,7 +54,7 @@ const UserForm = () => {
   const { id } = useParams()
   const [userEditID, setuserEditID] = useState("")
   const isEditing = Boolean(id)
-  const { role: currentUserRole, userID: currentUserId } = useContext(SessionContext)
+  const { role: currentUserRole, userID: currentUserId, universityID: currentUniversityId } = useContext(SessionContext)
 
   const [loading, setLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -102,9 +102,21 @@ const UserForm = () => {
         setUniversities(uniRes.data.universities || [])
         setExistingUsers(usersRes.data.users || [])
 
+        if (!isEditing && currentUserRole !== "global-admin") {
+          setAccountData((prev) => ({
+            ...prev,
+            universityId: currentUniversityId,
+          }))
+        }
+
         if (isEditing) {
           const { data } = await axios.get(`${GATEWAY_URL}/auth/accounts/${id}`) 
           const u = data.account
+
+          if (currentUserRole !== "global-admin" && currentUniversityId !== u.univeristyID) {
+            navigate("/not-found");
+            return;
+          }
 
           setuserEditID(u.userId._id)
 
@@ -289,7 +301,6 @@ const UserForm = () => {
 
     try {
       if (!isEditing && selectedExistingUser) {
-        // Lógica para crear solo la cuenta (mantener igual)
         const accountPayload = {
           email: accountData.email,
           role: accountData.role,
@@ -465,6 +476,7 @@ const UserForm = () => {
                               sx={{ 
                                 width: 24, 
                                 height: 24, 
+                                mr: 2
                               }}
                             />
                           )}
@@ -608,13 +620,20 @@ const UserForm = () => {
                   <InputLabel>{t("user.role")}</InputLabel>
                   <Select
                     value={accountData.role}
-                    label={t("user.role")}
-                    onChange={(e) => handleAccountDataChange("role", e.target.value)}
+                    label={t("users.role")}
+                    onChange={(e) => setAccountData({ ...accountData, role: e.target.value })}
                   >
-                    <MenuItem value="student">{t("user.roles.student")}</MenuItem>
-                    <MenuItem value="professor">{t("user.roles.professor")}</MenuItem>
-                    <MenuItem value="admin">{t("user.roles.admin")}</MenuItem>
-                    <MenuItem value="global-admin">{t("user.roles.global-admin")}</MenuItem>
+                    {currentUserRole === "global-admin"
+                      ? ["student", "professor", "admin", "global-admin"].map((r) => (
+                          <MenuItem key={r} value={r}>
+                            {t(`user.roles.${r}`)}
+                          </MenuItem>
+                        ))
+                      : ["student", "professor", "admin"].map((r) => (
+                          <MenuItem key={r} value={r}>
+                            {t(`user.roles.${r}`)}
+                          </MenuItem>
+                        ))}
                   </Select>
                   {errors.role && (
                     <FormHelperText>
@@ -629,9 +648,10 @@ const UserForm = () => {
                   <FormControl fullWidth error={!!errors.universityId} required>
                     <InputLabel>{t("universities.uni")}</InputLabel>
                     <Select
-                      value={accountData.universityId}
+                      value={accountData.universityId || "kk"}
                       label={t("universities.uni")}
                       onChange={(e) => handleAccountDataChange("universityId", e.target.value)}
+                      disabled={currentUserRole !== "global-admin"}
                     >
                       {universities.map((university) => (
                         <MenuItem key={university._id} value={university._id}>
