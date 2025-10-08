@@ -2,6 +2,32 @@ import { render, screen } from "@testing-library/react";
 import App from "../App";
 import { MemoryRouter } from "react-router";
 import { SessionContext } from "../SessionContext";
+import axios from "axios";
+
+// --- Mockear Axios ---
+// Esta es la parte clave para prevenir los errores asíncronos.
+// Sustituye el módulo Axios por un objeto simulado.
+jest.mock('axios', () => ({
+  // Asegura que todas las llamadas GET (que hacen tus componentes al montarse) se resuelvan inmediatamente.
+  get: jest.fn((url) => {
+    // Puedes incluso devolver diferentes valores si es necesario, pero un objeto vacío suele ser suficiente para evitar el error.
+    return Promise.resolve({ data: {} });
+  }),
+  
+  // Asegura que otras funciones de Axios que puedan usarse en la inicialización o interceptores también estén definidas.
+  post: jest.fn(() => Promise.resolve({ data: {} })),
+  
+  // Si usas axios.create, debes simular la instancia con sus métodos.
+  create: jest.fn(() => ({
+    get: jest.fn(() => Promise.resolve({ data: {} })),
+    post: jest.fn(() => Promise.resolve({ data: {} })),
+    // Simula los interceptores si los usas
+    interceptors: {
+      request: { use: jest.fn(), eject: jest.fn() },
+      response: { use: jest.fn(), eject: jest.fn() },
+    },
+  })),
+}));
 
 // Reusable render function with mock context
 const renderWithProviders = (
@@ -20,6 +46,11 @@ const renderWithProviders = (
 };
 
 describe("App Component Routes", () => {
+  afterEach(() => {
+    // Limpia los mocks de llamada de Axios para que no se afecten entre tests.
+    jest.clearAllMocks();
+  });
+
   test("renders login page", () => {
     renderWithProviders(<App />, { initialRoute: "/login" });
     expect(screen.getByTestId("login-page")).toBeInTheDocument();
