@@ -41,7 +41,7 @@ describe("UserForm Page", () => {
     ReactRouter.useParams.mockReturnValue({}); // not editing
 
     mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, { universities: [] });
-    mockAxios.onGet(`${GATEWAY_URL}/auth/users`).reply(200, { users: [] });
+    mockAxios.onGet(`${GATEWAY_URL}/authVerify/users`).reply(200, { users: [] });
 
     renderWithContext(<UserForm />);
 
@@ -63,7 +63,7 @@ describe("UserForm Page", () => {
   it("updates input fields and removes errors", async () => {
     ReactRouter.useParams.mockReturnValue({});
     mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, { universities: [] });
-    mockAxios.onGet(`${GATEWAY_URL}/auth/users`).reply(200, { users: [] });
+    mockAxios.onGet(`${GATEWAY_URL}/authVerify/users`).reply(200, { users: [] });
 
     renderWithContext(<UserForm />);
 
@@ -84,7 +84,7 @@ describe("UserForm Page", () => {
     const existingUser = { _id: "u2", identityNumber: "123", name: "Bob", firstSurname: "Smith", secondSurname: "", photoUrl: "" };
 
     mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, { universities: [] });
-    mockAxios.onGet(`${GATEWAY_URL}/auth/users`).reply(200, { users: [existingUser] });
+    mockAxios.onGet(`${GATEWAY_URL}/authVerify/users`).reply(200, { users: [existingUser] });
 
     renderWithContext(<UserForm />);
 

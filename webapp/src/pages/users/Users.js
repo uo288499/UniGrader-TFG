@@ -72,7 +72,7 @@ const Users = () => {
       try {
         setLoading(true);
 
-        const { data: usersData } = await axios.get(`${GATEWAY_URL}/auth/accounts`);
+        const { data: usersData } = await axios.get(`${GATEWAY_URL}/authVerify/accounts`);
         setUsers(usersData?.accounts ?? usersData ?? []);
 
         if (sessionRole === "global-admin") {

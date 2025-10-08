@@ -11,4 +11,7 @@ const studyProgramSchema = new mongoose.Schema({
   universityId: { type: mongoose.Schema.Types.ObjectId, ref: 'University', required: true }, // Links the program to a university
 }, { timestamps: true });
 
+// Ensures study program names are unique within a university.
+studyProgramSchema.index({ name: 1, universityId: 1 }, { unique: true });
+
 module.exports = mongoose.model('StudyProgram', studyProgramSchema);

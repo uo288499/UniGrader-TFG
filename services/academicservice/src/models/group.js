@@ -8,4 +8,6 @@ const groupSchema = new mongoose.Schema({
   professors: [{ type: mongoose.Schema.Types.ObjectId }]
 }, { timestamps: true });
 
+groupSchema.index({ name: 1, courseId: 1 }, { unique: true });
+
 module.exports = mongoose.model('Group', groupSchema);

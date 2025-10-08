@@ -120,8 +120,7 @@ app.use(express.urlencoded({ limit: '6mb', extended: true }));
 
 // Routes
 require("./routes/pub")(app);
-require("./routes/verify")(app);
-require("./routes/passwordChange")(app);
+require("./routes")(app);
 
 setupDefaultHandlers(app);
 

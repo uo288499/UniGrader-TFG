@@ -30,12 +30,16 @@ const NavBar = ({ themeMode, setThemeMode, isLargeTextMode, setIsLargeTextMode }
   const { t, i18n } = useTranslation()
 
   const navigationItems = [
-    { name: "usersNav", href: "/users", roles: ["global-admin", "admin"] },
     { name: "university", href: "/universities", roles: ["global-admin"] },
     { name: "university", href: `/universities/${universityID}`, roles: ["admin"] },
-    { name: "studyPrograms", href: "/study-programs", roles: ["admin"] },
+    { name: "usersNav", href: "/users", roles: ["global-admin", "admin"] },
+    { name: "studyProgramsNav", href: "/study-programs", roles: ["admin"] },
+    { name: "academicYearNav", href: "/academic-years", roles: ["admin"] },
+    { name: "enrollmentsNav", href: "/enrollments", roles: ["admin"] },
+    { name: "evaluationTypes.title", href: "/evaluation-types", roles: ["admin"] },
     { name: "subjects", href: "/subjects", roles: ["admin"] },
     { name: "courses", href: "/courses", roles: ["admin", "professor"] },
+    { name: "groupsNav", href: "/groups", roles: ["admin", "professor"] },
     { name: "grades", href: "/grades", roles: ["professor", "student"] },
     { name: "login.title", href: "/login", roles: [""] },
     { name: "forgotPassword.title", href: "/forgot-password", roles: [""] },

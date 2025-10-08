@@ -7,7 +7,9 @@ const courseSchema = new mongoose.Schema({
   subjectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Subject', required: true },
   academicYearId: { type: mongoose.Schema.Types.ObjectId, ref: 'AcademicYear', required: true },
   universityId: { type: mongoose.Schema.Types.ObjectId, ref: 'University', required: true },
-  groups: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Group' }] 
+  studyProgramId: { type: mongoose.Schema.Types.ObjectId, ref: 'StudyProgram', required: true },
+  groups: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Group', required: true }],
+  evaluationSystemId: { type: mongoose.Schema.Types.ObjectId } 
 }, { timestamps: true });
 
 // Ensures course are unique within an academic year and university.

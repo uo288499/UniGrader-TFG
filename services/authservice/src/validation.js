@@ -43,7 +43,8 @@ module.exports = {
     language: body("language").optional({ nullable: true, checkFalsy: true }).isString(), 
     photoUrlBase64: body("photoUrlBase64")
       .optional({ nullable: true, checkFalsy: true })
-      .isString()
+      .isString(),
+    user: body("user").optional(),
   },
   setup,
 };

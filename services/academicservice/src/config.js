@@ -13,6 +13,11 @@ module.exports = {
     maxContactPhoneLength: 30,
   },
 
+  studyPrograms: {
+    maxNameLength: 200,
+    allowedTypes: ["Bachelor", "Master", "Doctorate", "Postgraduate", "Specialization", "Other"]
+  },
+
   cloudinary: {
     cloudName: process.env.CLOUD_NAME,
     apiKey: process.env.API_KEY,

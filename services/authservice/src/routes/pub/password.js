@@ -21,7 +21,6 @@ module.exports = (app) => {
     },
   });
 
-  // Ruta para enviar el enlace de recuperación
   app.post("/forgot-password",
     ...validation.setup(400, validation.fields.email, validation.fields.language, checkExact()),
     async (req, res) => {
@@ -37,7 +36,7 @@ module.exports = (app) => {
             // @ts-ignore
             const translations = mailTranslations[language] || mailTranslations['en'];
 
-            // Crea un token JWT que caduca en 1 hora
+            // Crea un token JWT que caduca
             const token = jwt.sign({ id: account._id }, config.jwt.secret, { expiresIn: '1h' });
 
             // Guarda el token y la fecha de expiración en la base de datos
@@ -61,7 +60,6 @@ module.exports = (app) => {
         }
   });
 
-  // Ruta para restablecer la contraseña
   app.post("/reset-password/:token", async (req, res) => {
     try {
       const { password } = req.body;

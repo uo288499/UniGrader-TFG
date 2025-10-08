@@ -43,6 +43,9 @@ module.exports = (app) => {
         const newUniversityData = req.body;
         const { smallLogoBase64, largeLogoBase64 } = newUniversityData;
 
+        const universityExists = await University.findOne({name: newUniversityData.name});
+        if (universityExists) return res.status(400).json({ success: false, errorKey: "universityExists" });
+
         // Subir y obtener URL del smallLogo (usando Base64)
         if (smallLogoBase64) {
           // Cloudinary puede subir cadenas Base64 directamente
@@ -116,6 +119,12 @@ module.exports = (app) => {
 
         const currentUniversity = await University.findById(id);
         if (!currentUniversity) return res.status(404).json({ success: false, errorKey: "notFound" });
+
+        const universityExists = await University.findOne({ 
+          name: updates.name, 
+          _id: { $ne: id }
+        });
+        if (universityExists) return res.status(400).json({ success: false, errorKey: "universityExists" });
 
         /**
          * @param {string | undefined} base64Data La cadena Base64 del cuerpo de la solicitud.

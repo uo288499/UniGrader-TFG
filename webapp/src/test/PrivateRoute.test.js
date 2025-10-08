@@ -23,8 +23,10 @@ describe("PrivateRoute Component", () => {
   });
 
   test("redirects to login when not logged in", () => {
-    renderRoute({ isLoggedIn: false, role: "" });
-    expect(window.location.pathname).toBe("/login");
+      const mockDestroy = jest.fn();
+      renderRoute({ isLoggedIn: false, role: "", destroySession: mockDestroy });
+      expect(mockDestroy).toHaveBeenCalled();
+      expect(window.location.pathname).toBe("/login");
   });
 
   test("renders element when role is authorized", () => {

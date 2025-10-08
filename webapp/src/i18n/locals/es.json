@@ -12,10 +12,13 @@
   "navigation": "Navegación",
   "university": "Universidades",
   "usersNav": "Usuarios",
-  "studyPrograms": "Programas de estudio",
-  "subjects": "Asignaturas",
-  "courses": "Cursos",
+  "studyProgramsNav": "Programas de Estudio",
+  "academicYearNav": "Años Académicos",
+  "enrollmentsNav": "Matrículas",
+  "subjects": "Materias",
+  "courses": "Asignaturas",
   "grades": "Notas",
+  "groupsNav": "Grupos",
   "reports": "Informes",
   "noResults": "No se encontraron resultados",
   "rowsPage": "Filas por página:",
@@ -47,7 +50,16 @@
     "badRequest": "Solicitud incorrecta. Por favor, revisa tus datos.",
     "accountsExist": "No puedes borrar universidades con cuentas vinculadas.",
     "emailExists": "Ya existe una cuenta que usa este email.",
-    "IDExists": "Ya existe un usuario con este DNI/NIE."
+    "IDExists": "Ya existe un usuario con este DNI/NIE.",
+    "programExists": "Esta universidad ya tiene este programa.",
+    "universityExists": "Ya existe una universidad con este nombre.",
+    "yearExists": "Ya existe un año académico con esta etiqueta en esta universidad.",
+    "evaluationTypeExists": "Ya existe un tipo de evaluación con este nombre en esta universidad.",
+    "subjectExists": "Ya existe una materia con este código en esta universidad.",
+    "courseExists": "Ya existe una asignatura con este código en el año académico seleccionado.",
+    "courseHasGroups": "No puedes eliminar una asignatura que tiene grupos asociados.",
+    "enrollmentExists": "El estudiante ya está matriculado en este programa.",
+    "groupExists": "Ya existe un grupo con este nombre en esta asignatura."
   },
   "forgotPassword": {
     "title": "Restablecer contraseña",
@@ -102,12 +114,15 @@
     "cancel": "CANCELAR",
     "back": "Atrás",
     "loadingData": "Cargando datos...",
-    "upload": "SUBIR LOGO"
+    "upload": "SUBIR LOGO",
+    "all": "Todos"
   },
   "resetFilters": "LIMPIAR FILTROS",
   "delete": "ELIMINAR",
+  "deleting": "Eliminando...",
   "update": "ACTUALIZAR",
   "create": "CREAR",
+  "saving": "Guardando...",
   "all": "Todos",
   "user": {
     "new": "Nueva Cuenta",
@@ -157,7 +172,7 @@
     "errorRoleRequired": "El rol es obligatorio",
     "errorUniversityRequired": "La universidad es obligatoria para este rol",
     "errorMaxSize": "La imagen no puede superar los 5MB",
-    "errorInvalidFormat": "Formato de imagen no válido",
+    "errorInvalidFormat": "Formato no permitido (solo PNG, JPG, SVG)",
     "errorInvalidPhoto": "Formato de imagen no válido"
   },
   "resetPassword": {
@@ -180,5 +195,206 @@
       "minNumbers": "Al menos 1 número",
       "minSymbols": "Al menos 1 carácter especial"
     }
+  },
+  "studyPrograms": {
+    "program": "Programa de Estudio",
+    "title": "Programas de Estudio",
+    "new": "Nuevo Programa",
+    "name": "Nombre del Programa",
+    "type": "Tipo de Programa",
+    "types": {
+      "Bachelor": "Grado",
+      "Master": "Máster",
+      "Doctorate": "Doctorado",
+      "Postgraduate": "Posgrado",
+      "Specialization": "Especialización",
+      "Other": "Otro"
+    },
+    "updateTitle": "EDITAR PROGRAMA",
+    "createTitle": "CREAR PROGRAMA",
+    "basicInfo": "Información Básica",
+    "confirmDelete": "¿Estás seguro de que quieres eliminar este programa de estudio?",
+    "error": {
+      "nameRequired": "El nombre del programa es obligatorio.",
+      "nameLength": "El nombre debe tener al menos 3 caracteres.",
+      "nameMax": "El nombre no puede exceder los 200 caracteres.",
+      "typeRequired": "El tipo de programa es obligatorio."
+    },
+    "success": {
+      "created": "Programa de estudio creado exitosamente.",
+      "updated": "Programa de estudio actualizado exitosamente.",
+      "deleted": "Programa de estudio eliminado correctamente."
+    }
+  },
+  "academicYears": {
+    "single": "Año Académico",
+    "title": "Años Académicos",
+    "new": "Nuevo Año Académico",
+    "yearLabel": "Etiqueta del Año",
+    "startDate": "Fecha de Inicio",
+    "endDate": "Fecha de Fin",
+    "updateTitle": "EDITAR AÑO ACADÉMICO",
+    "createTitle": "CREAR AÑO ACADÉMICO",
+    "basicInfo": "Información Básica",
+    "confirmDelete": "¿Estás seguro de que quieres eliminar este año académico?",
+    "error": {
+      "yearLabelRequired": "La etiqueta del año es obligatoria.",
+      "yearLabelLength": "La etiqueta debe tener al menos 3 caracteres.",
+      "yearLabelMax": "La etiqueta no puede exceder los 50 caracteres.",
+      "startDateRequired": "La fecha de inicio es obligatoria.",
+      "endDateRequired": "La fecha de fin es obligatoria.",
+      "startAfterEnd": "La fecha de inicio no puede ser posterior a la fecha de fin",
+      "endBeforeStart": "La fecha de fin no puede ser anterior a la fecha de inicio"
+    },
+    "success": {
+      "created": "Año académico creado exitosamente.",
+      "updated": "Año académico actualizado exitosamente.",
+      "deleted": "Año académico eliminado correctamente."
+    }
+  },
+  "evaluationTypes": {
+    "title": "Tipos de Evaluación",
+    "new": "Nuevo Tipo",
+    "name": "Nombre del Tipo",
+    "updateTitle": "ACTUALIZAR TIPO DE EVALUACIÓN",
+    "createTitle": "CREAR TIPO DE EVALUACIÓN",
+    "basicInfo": "Información Básica",
+    "confirmDelete": "¿Estás seguro de que deseas eliminar este tipo de evaluación?",
+    "error": {
+      "nameRequired": "El nombre del tipo es obligatorio.",
+      "nameLength": "El nombre debe tener al menos 3 carácteres.",
+      "nameMax": "El nombre no puede superar los 50 caracteres."
+    },
+    "success": {
+      "created": "Tipo de evaluación creado correctamente.",
+      "updated": "Tipo de evaluación actualizado correctamente.",
+      "deleted": "Tipo de evaluación eliminado correctamente."
+    }
+  },
+  "subject": {
+    "single": "Materia",
+    "new": "Nueva Materia",
+    "name": "Nombre de la Materia",
+    "code": "Código de la Materia",
+    "createTitle": "CREAR MATERIA",
+    "updateTitle": "EDITAR MATERIA",
+    "basicInfo": "Información básica",
+    "studyPrograms": "Programas de estudio",
+    "availablePrograms": "Programas disponibles",
+    "addedPrograms": "Programas añadidos",
+    "evaluationPolicy": "Política de evaluación",
+    "evaluationType": "Tipo de evaluación",
+    "minPercentage": "% mínimo",
+    "maxPercentage": "% máximo",
+    "addRule": "Añadir regla",
+    "confirmDelete": "¿Estás seguro de que deseas eliminar esta materia?",
+    "success": {
+      "created": "Materia creada correctamente.",
+      "updated": "Materia actualizada correctamente.",
+      "deleted": "Materia eliminada correctamente."
+    },
+    "error": {
+      "nameRequired": "El nombre de la materia es obligatorio.",
+      "nameLength": "El nombre debe tener entre 3 y 100 caracteres.",
+      "codeRequired": "El código de la materia es obligatorio.",
+      "codeLength": "El código debe tener entre 2 y 20 caracteres.",
+      "studyProgramsRequired": "Debes seleccionar al menos un programa de estudio.",
+      "atLeastOneRule": "Debes añadir al menos una regla de evaluación.",
+      "evaluationTypeRequired": "El tipo de evaluación es obligatorio.",
+      "minRequired": "El porcentaje mínimo es obligatorio.",
+      "minRange": "El mínimo debe estar entre 0 y 100.",
+      "maxRequired": "El porcentaje máximo es obligatorio.",
+      "maxRange": "El máximo debe estar entre 0 y 100.",
+      "minGreaterThanMax": "El mínimo no puede ser mayor que el máximo.",
+      "globalMinExceeded": "La suma de mínimos no puede superar el 100%.",
+      "globalMaxInsufficient": "La suma de máximos debe ser al menos 100%.",
+      "blockedByMins": "Este mínimo bloquea a otras reglas de llegar al 100%.",
+      "blockedByMaxs": "Este máximo bloquea a otras reglas de llegar al 100%.",
+      "evaluationTypeDuplicate": "Cada tipo de evaluación solo puede usarse una vez."
+    }
+  },
+  "course": {
+    "single": "Asignatura",
+    "new": "Nueva Asignatura",
+    "name": "Nombre de la Asignatura",
+    "code": "Código de la Asignatura",
+    "subject": "Materia",
+    "academicYear": "Año Académico",
+    "studyProgram": "Programa de Estudio",
+    "totalWeight": "Peso Total",
+    "createTitle": "CREAR ASIGNATURA",
+    "updateTitle": "EDITAR ASIGNATURA",
+    "basicInfo": "Información Básica",
+    "confirmDelete": "¿Estás seguro de que deseas eliminar esta asignatura?",
+    "groups": "Grupos de la asignatura",
+    "evaluationSystem": "Sistema de evaluación",
+    "addGroup": "Añadir grupo",
+    "groupName": "Nombre del grupo",
+    "selectSubjectToLoadPolicy": "Selecciona una materia para cargar su política de evaluación.",
+    "success": {
+      "created": "Asignatura creada correctamente.",
+      "updated": "Asignatura actualizada correctamente.",
+      "deleted": "Asignatura eliminada correctamente."
+    },
+    "error": {
+      "nameRequired": "El nombre de la asignatura es obligatorio.",
+      "nameLength": "El nombre debe tener entre 3 y 100 caracteres.",
+      "codeRequired": "El código de la asignatura es obligatorio.",
+      "codeLength": "El código debe tener entre 2 y 20 caracteres.",
+      "subjectRequired": "La materia es obligatoria.",
+      "academicYearRequired": "El año académico es obligatorio.",
+      "studyProgramRequired": "El programa de estudio es obligatorio.",
+      "noEvaluationGroups": "No se puede crear una asignatura sin grupos de evaluación. Revisa la materia.",
+      "invalidWeight": "El peso total debe estar entre 0 y 100.",
+      "totalWeightNot100": "La suma de los pesos totales debe ser igual al 100%.",
+      "belowMin": "El peso total está por debajo del mínimo para este tipo de evaluación definido en la materia.",
+      "aboveMax": "El peso total excede el máximo para este tipo de evaluación definido en la materia."
+    }
+  },
+  "enrollments": {
+    "new": "Nueva Matrícula",
+    "createTitle": "CREAR MATRÍCULA",
+    "updateTitle": "ACTUALIZAR MATRÍCULA",
+    "studentAccount": "Cuenta de Estudiante",
+    "searchPlaceholder": "Buscar por nombre, DNI/NIE o email...",
+    "success": {
+      "created": "Matrícula creada correctamente",
+      "updated": "Matrícula actualizada correctamente",
+      "deleted": "Matrícula eliminada correctamente"
+    },
+    "error": {
+      "studyProgramRequired": "El programa de estudio es obligatorio",
+      "academicYearRequired": "El año académico es obligatorio",
+      "accountRequired": "La cuenta del estudiante es obligatoria"
+    },
+    "confirmDelete": "¿Estás seguro de que deseas eliminar esta matrícula?"
+  },
+  "group": {
+    "single": "Grupo",
+    "new": "Nuevo Grupo",
+    "name": "Nombre del Grupo",
+    "course": "Asignatura",
+    "professors": "Profesores",
+    "students": "Estudiantes", 
+    "createTitle": "CREAR GRUPO",
+    "updateTitle": "EDITAR GRUPO",
+    "basicInfo": "Información Básica",
+    "confirmDelete": "¿Estás seguro de que deseas eliminar este grupo?",
+    "availableStudents": "Estudiantes disponibles",
+    "selectedStudents": "Estudiantes añadidos",
+    "availableProfessors": "Profesores disponibles",
+    "selectedProfessors": "Profesores añadidos",
+    "success": {
+      "created": "Grupo creado correctamente.",
+      "updated": "Grupo actualizado correctamente.",
+      "deleted": "Grupo eliminado correctamente."
+    },
+    "error": {
+      "nameRequired": "El nombre del grupo es obligatorio.",
+      "nameLength": "El nombre del grupo debe tener entre 1 y 50 caracteres.",
+      "courseRequired": "La asignatura es obligatoria.",
+      "atLeastOneProfessor": "Debes asignar al menos un profesor al grupo.",
+      "atLeastOneStudent": "Debes asignar al menos un estudiante al grupo."
+    } 
   }
 }

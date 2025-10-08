@@ -5,7 +5,8 @@ const subjectSchema = new mongoose.Schema({
   name: { type: String, required: true },
   code: { type: String, required: true },
   universityId: { type: mongoose.Schema.Types.ObjectId, ref: 'University', required: true },
-  studyProgramId: { type: mongoose.Schema.Types.ObjectId, ref: 'StudyProgram', required: true }
+  studyPrograms: [{ type: mongoose.Schema.Types.ObjectId, ref: 'StudyProgram', required: true }],
+  evaluationPolicyId: { type: mongoose.Schema.Types.ObjectId }
 }, { timestamps: true });
 
 // Ensures subject codes are unique within a university.

@@ -77,8 +77,7 @@ describe("NavBar Component", () => {
     const openBtn = screen.getByLabelText("aria.openDrawer");
     fireEvent.click(openBtn);
 
-    // "admin" role includes studyPrograms, subjects
-    expect(screen.getByText("studyPrograms")).toBeInTheDocument();
+    expect(screen.getByText("studyProgramsNav")).toBeInTheDocument();
     expect(screen.getByText("subjects")).toBeInTheDocument();
   });
 

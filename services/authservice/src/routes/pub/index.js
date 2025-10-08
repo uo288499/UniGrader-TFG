@@ -2,8 +2,6 @@
 
 const express = require("express");
 const login = require("./login");
-const users = require("./users");
-const accounts = require("./accounts");
 const password = require("./password")
 
 /**
@@ -12,8 +10,6 @@ const password = require("./password")
 module.exports = (app) => {
   const router = express.Router();
   login(router);
-  users(router);
-  accounts(router);
   password(router);
   app.use("/public", router);
 };

@@ -91,7 +91,7 @@ const UniversityForm = () => {
           largeLogo: universityData.largeLogoUrl || "",
         });
       } catch (err) {
-        const key = "error." + (err.response?.data?.errorKey || "genericError");
+        const key = "error." + (err.response?.data?.errorKey || err.response?.errorKey || "genericError");
         setErrorKey(key);
       } finally {
         setLoading(false);
@@ -119,38 +119,39 @@ const UniversityForm = () => {
     } else {
       setSubmitSuccess("");
     }
+    
   }, [errorKey, successKey, t]);
 
-  const validateForm = () => {
+    const validateForm = () => {
     const newErrors = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = t("universities.errorNameRequired");
+      newErrors.name = "universities.errorNameRequired";
     } else if (formData.name.trim().length < 3) {
-      newErrors.name = t("universities.errorNameLength");
+      newErrors.name = "universities.errorNameLength";
     } else if (formData.name.trim().length > 200) {
-      newErrors.name = t("universities.errorNameMax");
+      newErrors.name = "universities.errorNameMax";
     }
 
     if (formData.address && formData.address.length > 500) {
-      newErrors.address = t("universities.errorAddressMax");
+      newErrors.address = "universities.errorAddressMax";
     }
 
     if (formData.contactEmail) {
       if (formData.contactEmail.length > 100) {
-        newErrors.contactEmail = t("universities.errorEmailMax");
+        newErrors.contactEmail = "universities.errorEmailMax";
       } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactEmail)) {
-        newErrors.contactEmail = t("universities.errorInvalidEmail");
+        newErrors.contactEmail = "universities.errorInvalidEmail";
       }
     }
 
     if (formData.contactPhone && formData.contactPhone.length > 30) {
-      newErrors.contactPhone = t("universities.errorPhoneMax");
+      newErrors.contactPhone = "universities.errorPhoneMax";
     } else if (
       formData.contactPhone &&
       !/^[+]?[0-9\s\-]{9,}$/.test(formData.contactPhone)
     ) {
-      newErrors.contactPhone = t("universities.errorInvalidPhone");
+      newErrors.contactPhone = "universities.errorInvalidPhone";
     }
 
     setErrors(newErrors);
@@ -177,7 +178,7 @@ const UniversityForm = () => {
     if (file.size > maxSize) {
       setErrors((prev) => ({
         ...prev,
-        [logoType]: t("universities.errorMaxSize"),
+        [logoType]: "universities.errorMaxSize",
       }));
       return;
     }
@@ -186,7 +187,7 @@ const UniversityForm = () => {
     if (!allowed.includes(file.type)) {
       setErrors((prev) => ({
         ...prev,
-        [logoType]: t("universities.errorInvalidFormat"),
+        [logoType]: "universities.errorInvalidFormat",
       }));
       return;
     }
@@ -237,13 +238,11 @@ const UniversityForm = () => {
           `${GATEWAY_URL}/academic/universities/${id}`,
           dataToSend
         );
-        setSuccessKey("universities.updated");
       } else {
         response = await axios.post(
           `${GATEWAY_URL}/academic/universities`,
           dataToSend
         );
-        setSuccessKey("universities.created");
       }
 
       const updatedUniversity = response.data.university;
@@ -260,9 +259,11 @@ const UniversityForm = () => {
         }
       }
 
+      setSuccessKey(isEditing ? "universities.updated" : "universities.created");
+
       setTimeout(() => setSuccessKey(""), 2000);
     } catch (err) {
-      const key = "error." + (err.response?.data?.errorKey || "genericError");
+      const key = "error." + (err.response?.data?.errorKey || err.response?.errorKey || "genericError");
       setErrorKey(key);
     } finally {
       setLoading(false);
@@ -276,9 +277,12 @@ const UniversityForm = () => {
     try {
       await axios.delete(`${GATEWAY_URL}/academic/universities/${id}`);
       setSuccessKey("universities.deleted");
-      setTimeout(() => navigate("/universities"), 1500);
+      if (role !== "global-admin") 
+        setTimeout(() => navigate("/"), 1500); 
+      else
+        setTimeout(() => navigate("/universities"), 1500);
     } catch (err) {
-      const key = "error." + (err.response?.data?.errorKey || "genericError");
+      const key = "error." + (err.response?.data?.errorKey || err.response?.errorKey || "genericError");
       setErrorKey(key);
       setDeleting(false);
     }
@@ -338,7 +342,7 @@ const UniversityForm = () => {
                   value={formData.name}
                   onChange={handleInputChange("name")}
                   error={Boolean(errors.name)}
-                  helperText={errors.name && <span>{errors.name}</span>}
+                  helperText={errors.name && <span>{t(errors.name)}</span>}
                   required
                 />
               </Grid>
@@ -350,7 +354,7 @@ const UniversityForm = () => {
                   value={formData.address}
                   onChange={handleInputChange("address")}
                   error={Boolean(errors.address)}
-                  helperText={errors.address && <span>{errors.address}</span>}
+                  helperText={errors.address && <span>{t(errors.address)}</span>}
                   multiline
                   rows={2}
                 />
@@ -370,7 +374,7 @@ const UniversityForm = () => {
                   onChange={handleInputChange("contactEmail")}
                   error={Boolean(errors.contactEmail)}
                   helperText={
-                    errors.contactEmail && <span>{errors.contactEmail}</span>
+                    errors.contactEmail && <span>{t(errors.contactEmail)}</span>
                   }
                 />
               </Grid>
@@ -383,7 +387,7 @@ const UniversityForm = () => {
                   onChange={handleInputChange("contactPhone")}
                   error={Boolean(errors.contactPhone)}
                   helperText={
-                    errors.contactPhone && <span>{errors.contactPhone}</span>
+                    errors.contactPhone && <span>{t(errors.contactPhone)}</span>
                   }
                 />
               </Grid>
@@ -451,7 +455,7 @@ const UniversityForm = () => {
                       )}
                       {errors.smallLogo && (
                         <FormHelperText sx={{ color: terciary }}>
-                          {errors.smallLogo}
+                          {t(errors.smallLogo)}
                         </FormHelperText>
                       )}
                     </Box>
@@ -528,7 +532,7 @@ const UniversityForm = () => {
                   </Box>
                   {errors.largeLogo && (
                     <FormHelperText sx={{ color: terciary }}>
-                      {errors.largeLogo}
+                      {t(errors.largeLogo)}
                     </FormHelperText>
                   )}
                 </Box>
@@ -551,7 +555,7 @@ const UniversityForm = () => {
                       onClick={handleDelete}
                       disabled={loading || deleting}
                     >
-                      {t("delete")}
+                      {deleting ? t("deleting") : t("delete")}
                     </Button>
                   )}
 

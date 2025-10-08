@@ -94,6 +94,7 @@ services:
       NODE_ENV: production
       MONGODB_URI: mongodb://mongodb:27017/unigrader_academic
       AUTH_URL: http://authservice:8001
+      EVAL_URL: http://evalservice:8003
       CLOUD_NAME: ${CLOUD_NAME}
       API_KEY: ${API_KEY}
       API_SECRET: ${API_SECRET}

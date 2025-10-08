@@ -1,7 +1,7 @@
 // @ts-check
-const { EmailAccount } = require("../../models");
+const { EmailAccount } = require("../models");
 const axios = require("axios")
-const validation = require("../../validation");
+const validation = require("../validation");
 const { checkExact, body } = require("express-validator");
 
 const ACADEMIC_URL = process.env.ACADEMIC_URL || "http://localhost:8002";
@@ -77,6 +77,35 @@ module.exports = (app) => {
     }
   });
 
+  app.get("/accounts/by-university/:id", async (req, res) => {
+    try {
+      const universityIdParam = req.params.id;
+
+      const accounts = await EmailAccount.find({ universityId: universityIdParam })
+        .populate("userId")
+        .lean();
+
+      let university = null;
+      try {
+        const uniRes = await axios.get(
+          `${ACADEMIC_URL}/universities/${universityIdParam}`
+        );
+        university = uniRes.data;
+      } catch {
+        university = null;
+      }
+
+      const accountsWithUniversity = accounts.map(acc => ({
+        ...acc,
+        university,
+      }));
+
+      res.json({ success: true, accounts: accountsWithUniversity });
+    } catch (err) {
+      res.status(500).json({ success: false, errorKey: "serverError" });
+    }
+  });
+
   app.post(
     "/accounts",
     ...validation.setup(
@@ -85,6 +114,7 @@ module.exports = (app) => {
       validation.fields.role,
       validation.fields.universityId,
       validation.fields.userId,
+      validation.fields.user,
       checkExact()
     ),
     async (req, res) => {

@@ -226,7 +226,7 @@ describe("Users CRUD", () => {
   });
 
   it("Create user", async () => {
-    const res = await request(app).post("/public/users").send({
+    const res = await request(app).post("/users").send({
       identityNumber: "user1",
       name: "John",
       firstSurname: "Doe",
@@ -240,7 +240,7 @@ describe("Users CRUD", () => {
   });
 
   it("Get users", async () => {
-    await request(app).post("/public/users").send({
+    await request(app).post("/users").send({
       identityNumber: "user1",
       name: "John",
       firstSurname: "Doe",
@@ -248,14 +248,14 @@ describe("Users CRUD", () => {
       role: "student",
       password: "NewStrongPass123!"
     });
-    const res = await request(app).get("/public/users");
+    const res = await request(app).get("/users");
     expect(res.status).toBe(200);
     expect(res.body.users.length).toBe(1);
   });
 
   it("Get user by ID", async () => {
     const { testUser } = await createTestUser();
-    const res = await request(app).get(`/public/users/${testUser._id}`);
+    const res = await request(app).get(`/users/${testUser._id}`);
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.user.identityNumber).toBe("testuser1");
@@ -263,7 +263,7 @@ describe("Users CRUD", () => {
 
   it("Update user", async () => {
     const { emailAccount } = await createTestUser();
-    const res = await request(app).put(`/public/users/${emailAccount._id}`).send({
+    const res = await request(app).put(`/users/${emailAccount._id}`).send({
       name: "Updated",
       identityNumber: "testuser1",
       firstSurname: "User",
@@ -276,7 +276,7 @@ describe("Users CRUD", () => {
 
   it("Delete user", async () => {
     const { emailAccount } = await createTestUser();
-    const res = await request(app).delete(`/public/users/${emailAccount._id}`);
+    const res = await request(app).delete(`/users/${emailAccount._id}`);
     expect(res.status).toBe(200);
     const exists = await User.findById(emailAccount.userId);
     expect(exists).toBeNull();
@@ -291,7 +291,7 @@ describe("Accounts CRUD", () => {
 
   it("Create account", async () => {
     const { testUser } = await createTestUser();
-    const res = await request(app).post("/public/accounts").send({
+    const res = await request(app).post("/accounts").send({
       email: "new@example.com",
       role: "student",
       userId: testUser._id
@@ -302,14 +302,14 @@ describe("Accounts CRUD", () => {
 
   it("Get accounts", async () => {
     await createTestUser();
-    const res = await request(app).get("/public/accounts");
+    const res = await request(app).get("/accounts");
     expect(res.status).toBe(200);
     expect(res.body.accounts.length).toBe(1);
   });
 
   it("Get account by ID", async () => {
     const { emailAccount } = await createTestUser();
-    const res = await request(app).get(`/public/accounts/${emailAccount._id}`);
+    const res = await request(app).get(`/accounts/${emailAccount._id}`);
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.account.email).toBe("testuser@test.com");
@@ -317,7 +317,7 @@ describe("Accounts CRUD", () => {
 
   it("Delete account", async () => {
     const { emailAccount } = await createTestUser();
-    const res = await request(app).delete(`/public/accounts/${emailAccount._id}`);
+    const res = await request(app).delete(`/accounts/${emailAccount._id}`);
     expect(res.status).toBe(200);
     const exists = await EmailAccount.findById(emailAccount._id);
     expect(exists).toBeNull();

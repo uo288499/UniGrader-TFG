@@ -61,6 +61,9 @@ const app = express();
 app.set("trust proxy", true);
 app.use(express.json());
 
+// Routes
+require("./routes")(app);
+
 setupDefaultHandlers(app);
 
 connectDB(config.mongoUri);

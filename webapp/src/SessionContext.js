@@ -13,9 +13,6 @@ const SessionProvider = ({ children }) => {
   const [role, setRole] = useState("");
   const [universityID, setUniversityID] = useState("");
 
-  const INACTIVITY_LIMIT = 60 * 60 * 1000; 
-  let activityTimer;
-
   // This effect runs once when the provider is mounted
   useEffect(() => {
     const storedSessionId = sessionStorage.getItem("sessionId");
@@ -34,28 +31,18 @@ const SessionProvider = ({ children }) => {
 
       const storedUniversityID = sessionStorage.getItem("universityID");
       if (storedUniversityID) setUniversityID(storedUniversityID);
-
-      startInactivityTimer();
     }
-
-    const events = ["mousemove", "keydown", "click", "scroll"];
-    events.forEach((e) => window.addEventListener(e, resetInactivityTimer));
-
-    return () => {
-      events.forEach((e) => window.removeEventListener(e, resetInactivityTimer));
-      clearTimeout(activityTimer);
-    };
   }, []);
 
   useEffect(() => {
     const interceptor = axios.interceptors.response.use(
       (response) => response,
       (error) => {
-        if (error.response?.status === 401) 
-        {
+        if (isLoggedIn && error.response?.status === 401) {
           destroySession();
           alert("Your session has expired. Please log in again.");
         }
+
         return Promise.reject(error);
       }
     );
@@ -64,20 +51,6 @@ const SessionProvider = ({ children }) => {
       axios.interceptors.response.eject(interceptor);
     };
   }, []);
-
-  const startInactivityTimer = () => {
-    clearTimeout(activityTimer);
-    activityTimer = setTimeout(() => {
-      destroySession();
-      alert("Session expired due to inactivity.");
-    }, INACTIVITY_LIMIT);
-  };
-
-  const resetInactivityTimer = () => {
-    if (isLoggedIn) {
-      startInactivityTimer();
-    }
-  };
 
   // Function to create a new session when a user logs in
   const createSession = (token, userID, accountID, role, universityID) => {
@@ -95,8 +68,6 @@ const SessionProvider = ({ children }) => {
     sessionStorage.setItem("accountID", accountID); 
     sessionStorage.setItem("role", role);
     if (universityID) sessionStorage.setItem("universityID", universityID);
-
-    startInactivityTimer();
   };
 
   // Function to destroy the session when the user logs out
@@ -115,7 +86,6 @@ const SessionProvider = ({ children }) => {
     setUniversityID("");
 
     delete axios.defaults.headers.common["Authorization"];
-    clearTimeout(activityTimer);
   };
 
   return (

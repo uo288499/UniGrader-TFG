@@ -12,7 +12,7 @@ module.exports = (app) => {
   // Ruta para cambiar la contraseña
   app.post(
     "/change-password",
-    ...validation.setup(400, validation.fields.password, validation.fields.accountId, checkExact()),
+    ...validation.setup(400, validation.fields.password, validation.fields.accountId, validation.fields.user, checkExact()),
     async (req, res) => {
       try {
         // La validación de express-validator ya asegura que 'password' existe y es fuerte

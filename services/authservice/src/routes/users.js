@@ -1,7 +1,7 @@
 // @ts-check
 const { checkExact } = require("express-validator");
-const { User, EmailAccount } = require("../../models");
-const validation = require("../../validation");
+const { User, EmailAccount } = require("../models");
+const validation = require("../validation");
 const cloudinary = require("cloudinary").v2;
 
 const folder = "unigrader_users";
@@ -35,6 +35,7 @@ module.exports = (app) => {
       validation.fields.password,
       validation.fields.universityId,
       validation.fields.photoUrlBase64,
+      validation.fields.user,
       checkExact()
     ),
     async (req, res) => {
@@ -138,6 +139,7 @@ module.exports = (app) => {
       validation.fields.role,
       validation.fields.universityId,
       validation.fields.photoUrlBase64,
+      validation.fields.user,
       checkExact()
     ),
     async (req, res) => {
@@ -155,6 +157,17 @@ module.exports = (app) => {
         if (!currentUser) {
           return res.status(404).json({ success: false, errorKey: "notFound" });
         }
+
+        const existingAccount = await EmailAccount.findOne({ email: updates.email, _id: { $ne: id } });
+        if (existingAccount) {
+          return res.status(400).json({ success: false, errorKey: "emailExists" });
+        }
+
+        const existingUser = await User.findOne({ identityNumber: updates.identityNumber, _id: { $ne: currentUser._id } });
+        if (existingUser) {
+          return res.status(400).json({ success: false, errorKey: "IDExists" });
+        }
+        
         /** @type {Object<string, any>} */
         let userUpdates = {};
 

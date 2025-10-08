@@ -73,7 +73,7 @@ app.use(express.json({ limit: '11mb' }));
 app.use(express.urlencoded({ limit: '11mb', extended: true })); 
 
 // Routes
-require("./routes/universities")(app);
+require("./routes")(app);
 
 setupDefaultHandlers(app);
 

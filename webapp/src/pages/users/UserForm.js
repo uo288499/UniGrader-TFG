@@ -96,7 +96,7 @@ const UserForm = () => {
         setLoading(true)
         const [uniRes, usersRes] = await Promise.all([
           axios.get(`${GATEWAY_URL}/academic/universities`),
-          axios.get(`${GATEWAY_URL}/auth/users`),
+          axios.get(`${GATEWAY_URL}/authVerify/users`),
         ])
 
         setUniversities(uniRes.data.universities || [])
@@ -110,7 +110,7 @@ const UserForm = () => {
         }
 
         if (isEditing) {
-          const { data } = await axios.get(`${GATEWAY_URL}/auth/accounts/${id}`) 
+          const { data } = await axios.get(`${GATEWAY_URL}/authVerify/accounts/${id}`) 
           const u = data.account
 
           if (currentUserRole !== "global-admin" && currentUniversityId !== u.univeristyID) {
@@ -161,27 +161,27 @@ const UserForm = () => {
     const newErrors = {}
 
     if (!userData.identityNumber.trim()) {
-      newErrors.identityNumber = t("users.errorIdentityRequired")
+      newErrors.identityNumber = "users.errorIdentityRequired"
     }
     if (!userData.name.trim()) {
-      newErrors.name = t("users.errorNameRequired")
+      newErrors.name = "users.errorNameRequired"
     }
     if (!userData.firstSurname.trim()) {
-      newErrors.firstSurname = t("users.errorFirstSurnameRequired")
+      newErrors.firstSurname = "users.errorFirstSurnameRequired"
     }
 
     if (!accountData.email.trim()) {
-      newErrors.email = t("users.errorEmailRequired")
+      newErrors.email = "users.errorEmailRequired"
     } else if (!/\S+@\S+\.\S+/.test(accountData.email)) {
-      newErrors.email = t("users.errorInvalidEmail")
+      newErrors.email = "users.errorInvalidEmail"
     }
 
     if (!accountData.role) {
-      newErrors.role = t("users.errorRoleRequired")
+      newErrors.role = "users.errorRoleRequired"
     }
 
     if (accountData.role && accountData.role !== "global-admin" && !accountData.universityId) {
-      newErrors.universityId = t("users.errorUniversityRequired")
+      newErrors.universityId = "users.errorUniversityRequired"
     }
 
     setErrors(newErrors)
@@ -238,7 +238,7 @@ const UserForm = () => {
     if (file.size > maxSize) {
       setErrors((prev) => ({
         ...prev,
-        photo: t("users.errorMaxSize"),
+        photo: "users.errorMaxSize",
       }))
       return
     }
@@ -247,7 +247,7 @@ const UserForm = () => {
     if (!allowed.includes(file.type)) {
       setErrors((prev) => ({
         ...prev,
-        photo: t("users.errorInvalidFormat"),
+        photo: "users.errorInvalidFormat",
       }))
       return
     }
@@ -307,8 +307,7 @@ const UserForm = () => {
           universityId: accountData.universityId,
           userId: selectedExistingUser._id,
         }
-        const { data } = await axios.post(`${GATEWAY_URL}/auth/accounts`, accountPayload)
-        setSuccessKey("users.accountCreated")
+        const { data } = await axios.post(`${GATEWAY_URL}/authVerify/accounts`, accountPayload)
 
         const newAccountId = data.account._id || data.account.id
         if (newAccountId) {
@@ -317,6 +316,8 @@ const UserForm = () => {
             navigate(`/users/${newAccountId}`, { replace: true })
           }, 0)
         }
+
+        setSuccessKey("users.accountCreated")
       } else {
         // Lógica para crear/editar User y Account
         const payload = {
@@ -332,11 +333,9 @@ const UserForm = () => {
         }
 
         if (isEditing) {
-          await axios.put(`${GATEWAY_URL}/auth/users/${id}`, payload)
-          setSuccessKey("users.updated")
+          await axios.put(`${GATEWAY_URL}/authVerify/users/${id}`, payload)
         } else {
-          const { data } = await axios.post(`${GATEWAY_URL}/auth/users`, payload)
-          setSuccessKey("users.created")
+          const { data } = await axios.post(`${GATEWAY_URL}/authVerify/users`, payload)
 
           const newId = data.account._id || data.account.id
           if (newId) {
@@ -347,7 +346,7 @@ const UserForm = () => {
           }
         }
       }
-
+      setSuccessKey(isEditing ? "users.updated" : "users.created");
       setTimeout(() => setSuccessKey(""), 2000)
     } catch (err) {
       const key = "error." + (err.response?.data?.errorKey || "genericError")
@@ -362,7 +361,7 @@ const UserForm = () => {
 
     setDeleting(true)
     try {
-      await axios.delete(`${GATEWAY_URL}/auth/users/${id}`)
+      await axios.delete(`${GATEWAY_URL}/authVerify/users/${id}`)
       setSuccessKey("users.deleted")
       setTimeout(() => navigate("/users"), 1500)
     } catch (err) {
@@ -377,7 +376,7 @@ const UserForm = () => {
 
     setDeletingAccount(true)
     try {
-      await axios.delete(`${GATEWAY_URL}/auth/accounts/${id}`) 
+      await axios.delete(`${GATEWAY_URL}/authVerify/accounts/${id}`) 
       setSuccessKey("users.accountDeleted")
       setTimeout(() => navigate("/users"), 1500)
     } catch (err) {
@@ -512,7 +511,7 @@ const UserForm = () => {
                   value={userData.identityNumber}
                   onChange={(e) => handleUserDataChange("identityNumber", e.target.value)}
                   error={!!errors.identityNumber}
-                  helperText={errors.identityNumber && <span>{errors.identityNumber}</span>}
+                  helperText={errors.identityNumber && <span>{t(errors.identityNumber)}</span>}
                   required
                   disabled={!!selectedExistingUser}
                 />
@@ -525,7 +524,7 @@ const UserForm = () => {
                   value={userData.name}
                   onChange={(e) => handleUserDataChange("name", e.target.value)}
                   error={!!errors.name}
-                  helperText={errors.name && <span>{errors.name}</span>}
+                  helperText={errors.name && <span>{t(errors.name)}</span>}
                   required
                   disabled={!!selectedExistingUser}
                 />
@@ -538,7 +537,7 @@ const UserForm = () => {
                   value={userData.firstSurname}
                   onChange={(e) => handleUserDataChange("firstSurname", e.target.value)}
                   error={!!errors.firstSurname}
-                  helperText={errors.firstSurname && <span>{errors.firstSurname}</span>}
+                  helperText={errors.firstSurname && <span>{t(errors.firstSurname)}</span>}
                   required
                   disabled={!!selectedExistingUser}
                 />
@@ -588,7 +587,7 @@ const UserForm = () => {
                       )}
                       {errors.photo && (
                         <FormHelperText sx={{ color: terciary }}>
-                          <span>{errors.photo}</span>
+                          <span>{t(errors.photo)}</span>
                         </FormHelperText>
                       )}
                     </Box>
@@ -610,7 +609,7 @@ const UserForm = () => {
                   value={accountData.email}
                   onChange={(e) => handleAccountDataChange("email", e.target.value)}
                   error={!!errors.email}
-                  helperText={errors.email && <span>{errors.email}</span>}
+                  helperText={errors.email && <span>{t(errors.email)}</span>}
                   required
                 />
               </Grid>
@@ -637,7 +636,7 @@ const UserForm = () => {
                   </Select>
                   {errors.role && (
                     <FormHelperText>
-                      <span>{errors.role}</span>
+                      <span>{t(errors.role)}</span>
                     </FormHelperText>
                   )}
                 </FormControl>
@@ -661,7 +660,7 @@ const UserForm = () => {
                     </Select>
                     {errors.universityId && (
                       <FormHelperText>
-                        <span>{errors.universityId}</span>
+                        <span>{t(errors.universityId)}</span>
                       </FormHelperText>
                     )}
                   </FormControl>
@@ -685,7 +684,7 @@ const UserForm = () => {
                       onClick={handleDeleteAccount}
                       disabled={loading || deleting || deletingAccount}
                     >
-                      {deletingAccount ? t("users.deleting") : t("users.deleteAccount")}
+                      {deletingAccount ? t("deleting") : t("users.deleteAccount")}
                     </Button>
                   )}
 
@@ -696,7 +695,7 @@ const UserForm = () => {
                       onClick={handleDeleteUser}
                       disabled={loading || deleting || deletingAccount}
                     >
-                      {deleting ? t("users.deleting") : t("users.deleteUser")}
+                      {deleting ? t("deleting") : t("users.deleteUser")}
                     </Button>
                   )}
 

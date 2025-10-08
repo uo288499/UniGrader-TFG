@@ -76,7 +76,7 @@ describe("Users Page - Full Coverage", () => {
     );
 
   it("renders loading and then users list", async () => {
-    mockAxios.onGet(`${GATEWAY_URL}/auth/accounts`).reply(200, { accounts: mockUsers });
+    mockAxios.onGet(`${GATEWAY_URL}/authVerify/accounts`).reply(200, { accounts: mockUsers });
     mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, { universities: mockUniversities });
 
     renderWithContext();
@@ -90,7 +90,7 @@ describe("Users Page - Full Coverage", () => {
   });
 
   it("handles API error gracefully", async () => {
-    mockAxios.onGet(`${GATEWAY_URL}/auth/accounts`).reply(500);
+    mockAxios.onGet(`${GATEWAY_URL}/authVerify/accounts`).reply(500);
     mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(500);
 
     renderWithContext();
@@ -101,7 +101,7 @@ describe("Users Page - Full Coverage", () => {
   });
 
   it("filters users correctly", async () => {
-    mockAxios.onGet(`${GATEWAY_URL}/auth/accounts`).reply(200, { accounts: mockUsers });
+    mockAxios.onGet(`${GATEWAY_URL}/authVerify/accounts`).reply(200, { accounts: mockUsers });
     mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, { universities: mockUniversities });
 
     renderWithContext();
@@ -122,7 +122,7 @@ describe("Users Page - Full Coverage", () => {
   });
 
   it("navigates to create user page when allowed", async () => {
-    mockAxios.onGet(`${GATEWAY_URL}/auth/accounts`).reply(200, { accounts: [] });
+    mockAxios.onGet(`${GATEWAY_URL}/authVerify/accounts`).reply(200, { accounts: [] });
     mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, { universities: [] });
 
     renderWithContext("global-admin");
@@ -135,7 +135,7 @@ describe("Users Page - Full Coverage", () => {
   });
 
   it("does not show create button for student or professor", async () => {
-    mockAxios.onGet(`${GATEWAY_URL}/auth/accounts`).reply(200, { accounts: [] });
+    mockAxios.onGet(`${GATEWAY_URL}/authVerify/accounts`).reply(200, { accounts: [] });
     mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, { universities: [] });
 
     renderWithContext("student");
@@ -145,7 +145,7 @@ describe("Users Page - Full Coverage", () => {
   });
 
   it("navigates to edit user on edit icon click", async () => {
-    mockAxios.onGet(`${GATEWAY_URL}/auth/accounts`).reply(200, { accounts: mockUsers });
+    mockAxios.onGet(`${GATEWAY_URL}/authVerify/accounts`).reply(200, { accounts: mockUsers });
     mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, { universities: mockUniversities });
 
     renderWithContext();
@@ -172,7 +172,7 @@ describe("Users Page - Full Coverage", () => {
       university: { university: { name: "Uni One" } },
     }));
 
-    mockAxios.onGet(`${GATEWAY_URL}/auth/accounts`).reply(200, { accounts: manyUsers });
+    mockAxios.onGet(`${GATEWAY_URL}/authVerify/accounts`).reply(200, { accounts: manyUsers });
     mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, { universities: mockUniversities });
 
     renderWithContext();
@@ -186,7 +186,7 @@ describe("Users Page - Full Coverage", () => {
   });
 
   it("renders avatar fallback initials when photoUrl is empty", async () => {
-    mockAxios.onGet(`${GATEWAY_URL}/auth/accounts`).reply(200, { accounts: [mockUsers[0]] });
+    mockAxios.onGet(`${GATEWAY_URL}/authVerify/accounts`).reply(200, { accounts: [mockUsers[0]] });
     mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, { universities: mockUniversities });
 
     renderWithContext();
