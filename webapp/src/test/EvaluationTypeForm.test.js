@@ -64,4 +64,113 @@ describe("EvaluationTypeForm Page", () => {
       expect(screen.getByText(/evaluationTypes.success.created/i)).toBeInTheDocument();
     });
   });
+
+  it("loads evaluation type data when editing", async () => {
+    ReactRouter.useParams.mockReturnValue({ id: "et123" });
+
+    mockAxios.onGet(`${GATEWAY_URL}/academic/evaluation-types/et123`).reply(200, {
+      evaluationType: {
+        _id: "et123",
+        universityId: { _id: "uni1" },
+        name: "Exam"
+      }
+    });
+
+    renderWithContext(<EvaluationTypeForm />);
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Exam")).toBeInTheDocument();
+    });
+  });
+
+  it("redirects to not-found if evaluation type belongs to another university", async () => {
+    ReactRouter.useParams.mockReturnValue({ id: "et123" });
+
+    mockAxios.onGet(`${GATEWAY_URL}/academic/evaluation-types/et123`).reply(200, {
+      evaluationType: {
+        _id: "et123",
+        universityId: { _id: "otherUni" },
+        name: "Exam"
+      }
+    });
+
+    renderWithContext(<EvaluationTypeForm />);
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith("/not-found");
+    });
+  });
+
+  it("updates an existing evaluation type successfully", async () => {
+    ReactRouter.useParams.mockReturnValue({ id: "et123" });
+
+    mockAxios.onGet(`${GATEWAY_URL}/academic/evaluation-types/et123`).reply(200, {
+      evaluationType: { _id: "et123", universityId: { _id: "uni1" }, name: "Old Exam" }
+    });
+
+    mockAxios.onPut(`${GATEWAY_URL}/academic/evaluation-types/et123`).reply(200, {});
+
+    renderWithContext(<EvaluationTypeForm />);
+    await waitFor(() => screen.getByDisplayValue("Old Exam"));
+
+    fireEvent.change(screen.getByLabelText(/evaluationTypes.name/i), { target: { value: "Updated Exam" } });
+    const submitButton = screen.getByRole("button", { name: /update/i });
+    await act(async () => fireEvent.click(submitButton));
+
+    await waitFor(() => {
+      expect(screen.getByText(/evaluationTypes.success.updated/i)).toBeInTheDocument();
+    });
+  });
+
+  it("handles delete confirmation and success", async () => {
+    ReactRouter.useParams.mockReturnValue({ id: "et123" });
+    jest.spyOn(window, "confirm").mockReturnValue(true);
+
+    mockAxios.onGet(`${GATEWAY_URL}/academic/evaluation-types/et123`).reply(200, {
+      evaluationType: { _id: "et123", universityId: { _id: "uni1" }, name: "Exam" }
+    });
+
+    mockAxios.onDelete(`${GATEWAY_URL}/academic/evaluation-types/et123`).reply(200);
+
+    renderWithContext(<EvaluationTypeForm />);
+    await waitFor(() => screen.getByDisplayValue("Exam"));
+
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await act(async () => fireEvent.click(deleteButton));
+
+    await waitFor(() => {
+      expect(screen.getByText(/evaluationTypes.success.deleted/i)).toBeInTheDocument();
+    });
+  });
+
+  it("handles delete cancel", async () => {
+    ReactRouter.useParams.mockReturnValue({ id: "et123" });
+    jest.spyOn(window, "confirm").mockReturnValue(false);
+
+    mockAxios.onGet(`${GATEWAY_URL}/academic/evaluation-types/et123`).reply(200, {
+      evaluationType: { _id: "et123", universityId: { _id: "uni1" }, name: "Exam" }
+    });
+
+    renderWithContext(<EvaluationTypeForm />);
+    await waitFor(() => screen.getByDisplayValue("Exam"));
+
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await act(async () => fireEvent.click(deleteButton));
+
+    expect(mockNavigate).not.toHaveBeenCalledWith("/evaluation-types");
+  });
+
+  it("validates name length constraints", async () => {
+    ReactRouter.useParams.mockReturnValue({});
+    renderWithContext(<EvaluationTypeForm />);
+
+    const nameInput = screen.getByLabelText(/evaluationTypes.name/i);
+
+    fireEvent.change(nameInput, { target: { value: "Ex" } });
+    const submitButton = screen.getByRole("button", { name: /create/i });
+    await act(async () => fireEvent.click(submitButton));
+    await waitFor(() => expect(screen.getByText(/evaluationTypes.error.nameLength/i)).toBeInTheDocument());
+
+    fireEvent.change(nameInput, { target: { value: "E".repeat(201) } });
+    await act(async () => fireEvent.click(submitButton));
+    await waitFor(() => expect(screen.getByText(/evaluationTypes.error.nameMax/i)).toBeInTheDocument());
+  });
 });

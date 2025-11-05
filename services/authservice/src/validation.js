@@ -24,6 +24,7 @@ module.exports = {
   fields: {
     email: body("email").isEmail().normalizeEmail(),
     password: body("password").optional({ nullable: true, checkFalsy: true }).isString().isStrongPassword(config.pass),
+    currentPassword: body("currentPassword").optional({ nullable: true, checkFalsy: true }).isString().isStrongPassword(config.pass),
     token: body("token").optional().isJWT(),
     identityNumber: body("identityNumber").isString().notEmpty(),
     name: body("name").isString().notEmpty(),

@@ -41,7 +41,6 @@ const EvaluationTypeForm = () => {
   const [submitSuccess, setSubmitSuccess] = useState("");
   const [successKey, setSuccessKey] = useState("");
 
-  // Fetch data
   useEffect(() => {
     const fetchType = async () => {
       if (!id || !universityID) return;
@@ -70,7 +69,6 @@ const EvaluationTypeForm = () => {
     if (isEditing) fetchType();
   }, [id, isEditing, universityID, navigate]);
 
-  // Manage global success/error messages
   useEffect(() => {
     setSubmitError(errorKey ? t(errorKey) : "");
     setSubmitSuccess(successKey ? t(successKey) : "");

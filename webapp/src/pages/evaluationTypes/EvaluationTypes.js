@@ -32,14 +32,11 @@ const EvaluationTypes = () => {
   const [evaluationTypes, setEvaluationTypes] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Filters
   const [filters, setFilters] = useState({ name: "" });
 
-  // Pagination
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
-  // Fetch data
   useEffect(() => {
     if (!sessionUniversity) return setLoading(false);
 
@@ -152,6 +149,7 @@ const EvaluationTypes = () => {
         </TableContainer>
 
         <TablePagination
+          data-testid="rows-per-page"
           component="div"
           count={filteredTypes.length}
           page={page}

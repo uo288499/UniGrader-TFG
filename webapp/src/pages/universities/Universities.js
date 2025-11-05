@@ -29,7 +29,6 @@ const Universities = () => {
   const [universities, setUniversities] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Filters
   const [filters, setFilters] = useState({
     name: "",
     address: "",
@@ -37,11 +36,9 @@ const Universities = () => {
     phone: "",
   });
 
-  // Pagination
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
-  // Fetch universities
   useEffect(() => {
     const fetchUniversities = async () => {
       setLoading(true);
@@ -60,7 +57,6 @@ const Universities = () => {
     fetchUniversities();
   }, []);
 
-  // Filtered universities using useMemo
   const filteredUniversities = useMemo(() => {
     let result = universities;
 
@@ -88,7 +84,6 @@ const Universities = () => {
     return result;
   }, [filters, universities]);
 
-  // Reset page when filters change
   useEffect(() => {
     setPage(0);
   }, [filters]);
@@ -232,6 +227,7 @@ const Universities = () => {
 
         {/* Pagination */}
         <TablePagination
+          data-testid="rows-per-page"
           component="div"
           count={filteredUniversities.length}
           page={page}

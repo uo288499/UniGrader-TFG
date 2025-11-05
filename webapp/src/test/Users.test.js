@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
 import axios from "axios";
 import MockAdapter from "axios-mock-adapter";
 import { BrowserRouter } from "react-router";
@@ -194,5 +194,89 @@ describe("Users Page - Full Coverage", () => {
     await waitFor(() => {
       expect(screen.getByText("JD")).toBeInTheDocument();
     });
+  });
+
+  it("changes rows per page and resets page", async () => {
+    const manyUsers = Array.from({ length: 12 }, (_, i) => ({
+      _id: `user${i}`,
+      email: `user${i}@test.com`,
+      role: "student",
+      universityId: "uni1",
+      userId: {
+        _id: `uid${i}`,
+        name: `Name${i}`,
+        firstSurname: `Surname${i}`,
+        secondSurname: "",
+        identityNumber: `DNI${i}`,
+        photoUrl: "",
+      },
+      university: { university: { name: "Uni One" } },
+    }));
+
+    mockAxios.onGet(`${GATEWAY_URL}/authVerify/accounts`).reply(200, { accounts: manyUsers });
+    mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, { universities: mockUniversities });
+
+    renderWithContext();
+
+    await waitFor(() => expect(screen.getByText("Name0 Surname0")).toBeInTheDocument());
+    expect(screen.queryByText("Name7 Surname7")).not.toBeInTheDocument();
+
+    const pagination = screen.getByTestId("rows-per-page");
+    const selectTrigger = within(pagination).getByRole("combobox");
+
+    fireEvent.mouseDown(selectTrigger);
+    const option = await screen.findByRole("option", { name: "10" });
+    fireEvent.click(option);
+
+    expect(selectTrigger).toHaveTextContent("10");
+    await waitFor(() => expect(screen.getByText("Name7 Surname7")).toBeInTheDocument());
+  });
+
+  test("imports CSV and refreshes data", async () => {
+    const mockFile = new File(["name;email\nJohn;test@example.com"], "test.csv", {
+      type: "text/csv",
+    });
+
+    mockAxios.onGet(`${GATEWAY_URL}/authVerify/accounts`).reply(200, { accounts: [] });
+    mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, { universities: mockUniversities });
+    mockAxios.onPost(`${GATEWAY_URL}/authVerify/users/import`).reply(200, { errors: [] });
+    mockAxios.onGet(`${GATEWAY_URL}/authVerify/accounts`).reply(200, { accounts: [] }); // refresh
+
+    renderWithContext();
+
+    await waitFor(() => expect(screen.getByTestId("users-list-page")).toBeInTheDocument());
+
+    const fileInput = screen.getByTestId("users-file-input");
+    fireEvent.change(fileInput, { target: { files: [mockFile] } });
+
+    await waitFor(() => expect(mockAxios.history.post.length).toBeGreaterThan(0));
+  });
+
+  test("handles pagination change", async () => {
+    const manyUsers = Array.from({ length: 12 }, (_, i) => ({
+      _id: `user${i}`,
+      email: `user${i}@test.com`,
+      role: "student",
+      universityId: "uni1",
+      userId: {
+        _id: `uid${i}`,
+        name: `Name${i}`,
+        firstSurname: `Surname${i}`,
+        secondSurname: "",
+        identityNumber: `DNI${i}`,
+        photoUrl: "",
+      },
+      university: { university: { name: "Uni One" } },
+    }));
+
+    mockAxios.onGet(`${GATEWAY_URL}/authVerify/accounts`).reply(200, { accounts: manyUsers });
+    mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, { universities: mockUniversities });
+
+    renderWithContext();
+
+    await waitFor(() => expect(screen.getByText("Name0 Surname0")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByLabelText("Go to next page"));
+    expect(screen.getByText("Name5 Surname5")).toBeInTheDocument();
   });
 });

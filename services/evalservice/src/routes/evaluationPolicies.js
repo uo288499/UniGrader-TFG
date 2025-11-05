@@ -7,7 +7,6 @@ const validation = require("../validation");
  * @param {import("express").Router} app
  */
 module.exports = (app) => {
-  // Crear una policy para una materia
   app.post(
     "/evaluation-policies",
     ...validation.setup(
@@ -44,7 +43,6 @@ module.exports = (app) => {
     }
   );
 
-  // Obtener todas las policies por subject
   app.get("/evaluation-policies/by-subject/:id", async (req, res) => {
     try {
       const subjectId = req.params.id;
@@ -63,7 +61,6 @@ module.exports = (app) => {
     }
   });
 
-  // Obtener una policy por ID
   app.get("/evaluation-policies/:id", async (req, res) => {
     try {
       const { id } = req.params;
@@ -82,7 +79,6 @@ module.exports = (app) => {
     }
   });
 
-  // Actualizar una policy
   app.put(
     "/evaluation-policies/:id",
     ...validation.setup(
@@ -124,7 +120,6 @@ module.exports = (app) => {
     }
   );
 
-  // Eliminar una policy
   app.delete("/evaluation-policies/:id", async (req, res) => {
     try {
       const { id } = req.params;

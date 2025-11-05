@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import Courses from "../pages/courses/Courses";
 import axios from "axios";
 import { SessionContext } from "../SessionContext";
@@ -156,5 +156,42 @@ describe("Courses Page", () => {
     fireEvent.click(createButton);
 
     expect(mockNavigate).toHaveBeenCalledWith("/courses/new");
+  });
+
+  test("changes rows per page and resets page", async () => {
+    const manyCourses = Array.from({ length: 10 }, (_, i) => ({
+      _id: `c${i}`,
+      name: `Course ${i}`,
+      code: `CODE${i}`,
+      subjectId: { _id: `s${i}`, name: `Subject ${i}` },
+      academicYearId: { _id: `y${i}`, yearLabel: `2024/25` },
+      studyProgramId: { _id: `sp${i}`, name: `Program ${i}` },
+    }));
+
+    const mockSubjects = manyCourses.map((c) => c.subjectId);
+    const mockAcademicYears = manyCourses.map((c) => c.academicYearId);
+    const mockStudyPrograms = manyCourses.map((c) => c.studyProgramId);
+
+    axios.get.mockResolvedValueOnce({ data: { courses: manyCourses } });
+    axios.get.mockResolvedValueOnce({ data: { subjects: mockSubjects } });
+    axios.get.mockResolvedValueOnce({ data: { years: mockAcademicYears } });
+    axios.get.mockResolvedValueOnce({ data: { programs: mockStudyPrograms } });
+
+    renderWithProviders(<Courses />);
+
+    await waitFor(() => expect(screen.getByText("Course 0")).toBeInTheDocument());
+
+    expect(screen.queryByText("Course 7")).not.toBeInTheDocument();
+
+    const pagination = screen.getByTestId("rows-per-page");
+    const selectTrigger = within(pagination).getByRole("combobox");
+
+    fireEvent.mouseDown(selectTrigger);
+    const option = await screen.findByRole("option", { name: "10" });
+    fireEvent.click(option);
+
+    expect(selectTrigger).toHaveTextContent("10");
+
+    await waitFor(() => expect(screen.getByText("Course 7")).toBeInTheDocument());
   });
 });

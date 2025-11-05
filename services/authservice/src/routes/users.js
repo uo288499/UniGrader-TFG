@@ -3,8 +3,10 @@ const { checkExact } = require("express-validator");
 const { User, EmailAccount } = require("../models");
 const validation = require("../validation");
 const cloudinary = require("cloudinary").v2;
+const axios = require("axios")
 
 const folder = "unigrader_users";
+const ACADEMIC_URL = process.env.ACADEMIC_URL || "http://localhost:8002";
 
 /**
  * Función auxiliar para obtener el Public ID de Cloudinary
@@ -98,7 +100,6 @@ module.exports = (app) => {
 
   app.get("/users", async (_req, res) => {
     try {
-      // Find all users and return the data as a plain JavaScript object
       const users = await User.find().lean();
       res.json({ success: true, users });
     } catch (err) {
@@ -109,15 +110,12 @@ module.exports = (app) => {
 
   app.get("/users/:id", async (req, res) => {
     try {
-      // Find a single user by their ID
       const user = await User.findById(req.params.id).lean();
 
-      // If the user is not found, return a 404 error
       if (!user) {
         return res.status(404).json({ success: false, errorKey: "notFound" });
       }
 
-      // If the user is found, return their data
       res.json({ success: true, user });
     } catch (err) {
       console.error(err);
@@ -171,7 +169,7 @@ module.exports = (app) => {
         /** @type {Object<string, any>} */
         let userUpdates = {};
 
-        // --- Lógica de actualización de imagen (PUT) ---
+        // Lógica de actualización de imagen
         const currentPhotoUrl = currentUser?.photoUrl;
         const publicId = getPublicId(currentPhotoUrl || "", folder);
 
@@ -188,7 +186,7 @@ module.exports = (app) => {
         // Se borra la imagen explícitamente 
         else if (photoUrl === "" && currentPhotoUrl && publicId) {
           await cloudinary.uploader.destroy(publicId);
-          userUpdates.photoUrl = null; // Guardar null en la DB
+          userUpdates.photoUrl = null;
         } 
         // Se envía una URL
         else if (photoUrl !== undefined) { 
@@ -233,7 +231,6 @@ module.exports = (app) => {
           return res.status(404).json({ success: false, errorKey: "notFound" });
         }
 
-        // Aseguramos que el usuario devuelto sea el más reciente
         const finalUser = updatedUser ? updatedUser.toObject() : (updatedAccount.userId || currentUser.toObject());
 
         res.json({ success: true, user: finalUser, account: updatedAccount.toObject() });
@@ -267,11 +264,195 @@ module.exports = (app) => {
         }
       }
 
-       // Delete the user, its accounts, and the image from Cloudinary
+      // Delete the user, its accounts, and the image from Cloudinary
       await Promise.all(promises);
 
       res.json({ success: true });
     } catch (err) {
+      res.status(500).json({ success: false, errorKey: "serverError" });
+    }
+  });
+
+  app.post("/users/import", async (req, res) => {
+    const { rows, user } = req.body;
+    const { role: requesterRole, universityId: requesterUniversityId } = user;
+
+    try {
+      if (!rows?.length) {
+        return res.status(400).json({
+          success: false,
+          errorKey: "emptyCSV",
+        });
+      }
+
+      const errors = [];
+      const added = [];
+
+      const { data: uniData } = await axios.get(`${ACADEMIC_URL}/universities`);
+      const universities = uniData.universities || [];
+
+      for (const [index, row] of rows.entries()) {
+        const {
+          identityNumber,
+          name,
+          firstSurname,
+          secondSurname,
+          email,
+          role,
+          university,
+        } = row;
+
+        // --------------- VALIDACIONES DE USUARIO ---------------
+
+        const existingUser = await User.findOne({ identityNumber: identityNumber }).lean();
+
+        // Si se intenta crear usuario vacío y no existe
+        if (!existingUser && (!name || !firstSurname)) {
+          errors.push({
+            line: index + 1,
+            data: identityNumber,
+            errorKey: "userNotFound",
+          });
+          continue;
+        }
+
+        // Si los datos no coinciden con el usuario existente
+        if (
+          existingUser &&
+          ((name && existingUser.name !== name) ||
+            (firstSurname && existingUser.firstSurname !== firstSurname) ||
+            (secondSurname && existingUser.secondSurname !== secondSurname))
+        ) {
+          errors.push({
+            line: index + 1,
+            data: identityNumber,
+            errorKey: "userConflictData",
+          });
+          continue;
+        } 
+        
+        // Si se intenta crear usuario sin los campos obligatorios
+        if (!existingUser && (!identityNumber || !name || !firstSurname)) {
+          errors.push({
+            line: index + 1,
+            data: "",
+            errorKey: "userMissingFields",
+          });
+          continue;
+        }
+
+        // --------------- VALIDACIONES DE ACCOUNT ---------------
+
+        // Falta información obligatoria
+        if (!email || !role) {
+          errors.push({
+            line: index + 1,
+            data: "",
+            errorKey: "accountMissingFields",
+          });
+          continue;
+        }
+
+        // Email inválido
+        const emailRegex = /\S+@\S+\.\S+/;
+        if (!emailRegex.test(email)) {
+          errors.push({
+            line: index + 1,
+            data: email,
+            errorKey: "invalidEmailFormat",
+          });
+          continue;
+        }
+
+        // Email duplicado en CSV
+        const emailDuplicates = rows.filter((/** @type {{ email: any; }} */ r) => r.email === email);
+        if (emailDuplicates.length > 1) {
+          errors.push({
+            line: index + 1,
+            data: email,
+            errorKey: "accountDuplicatedInFile",
+          });
+          continue;
+        }
+
+        // Rol inválido
+        const validRoles = ["student", "professor", "admin", "global-admin"];
+        if (!validRoles.includes(role) || (role === "global-admin" && requesterRole !== "global-admin")) { // Esconder el rol global-admin
+          errors.push({
+            line: index + 1,
+            data: role,
+            errorKey: "invalidRole",
+          });
+          continue;
+        }
+
+        // Universidad inválida
+        let universityDoc = null;
+        if (university && role !== "global-admin") {
+          universityDoc = universities.find((/** @type {{ name: any; }} */ u) => u.name === university);
+          if (!universityDoc) {
+            errors.push({
+              line: index + 1,
+              data: university,
+              errorKey: "invalidUniversity",
+            });
+            continue;
+          }
+        }
+
+        // Permiso para crear cuentas de otra universidad
+        if (
+          requesterRole !== "global-admin" &&
+          role !== "global-admin" &&
+          universityDoc &&
+          String(universityDoc._id) !== String(requesterUniversityId)
+        ) {
+          errors.push({
+            line: index + 1,
+            data: university,
+            errorKey: "invalidUniversity", // No revelar la existencia de otras universidades
+          });
+          continue;
+        }
+
+        // Email ya existente
+        const existingAccount = await EmailAccount.findOne({ email }).lean();
+        if (existingAccount) {
+          errors.push({
+            line: index + 1,
+            data: email,
+            errorKey: "accountEmailExists",
+          });
+          continue;
+        }
+
+        // --------------- CREAR ACCOUNT ---------------
+
+        // Si el usuario no existe, crearlo
+        let userDoc = existingUser;
+        if (!userDoc) {
+          userDoc = await User.create({
+            identityNumber,
+            name,
+            firstSurname,
+            secondSurname,
+          });
+        }
+
+        await EmailAccount.create({
+          email,
+          role,
+          userId: userDoc._id,
+          universityId:
+            role === "global-admin" ? null : universityDoc?._id || requesterUniversityId,
+        });
+
+        added.push(email);
+      }
+
+      return res.json({ success: true, added, errors });
+    } catch (err) {
+      console.error("Error importing users:", err);
       res.status(500).json({ success: false, errorKey: "serverError" });
     }
   });

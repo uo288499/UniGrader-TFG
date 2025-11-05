@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
 import Enrollments from "../pages/enrollments/Enrollments";
 import axios from "axios";
 import { SessionContext } from "../SessionContext";
@@ -165,5 +165,64 @@ describe("Enrollments Page", () => {
     fireEvent.click(createButton);
 
     expect(mockNavigate).toHaveBeenCalledWith("/enrollments/new");
+  });
+
+  test("changes rows per page and resets page", async () => {
+    const manyEnrollments = Array.from({ length: 10 }, (_, i) => ({
+      _id: `en${i}`,
+      account: {
+        email: `user${i}@example.com`,
+        userId: {
+          name: `User${i}`,
+          firstSurname: `Lastname${i}`,
+          secondSurname: "",
+          identityNumber: `ID${i}`,
+        },
+      },
+      studyProgramId: { _id: `p${i}`, name: `Program ${i}` },
+      academicYearId: { _id: `y${i}`, yearLabel: `2024/2025` },
+    }));
+
+    const mockPrograms = manyEnrollments.map((e) => e.studyProgramId);
+    const mockYears = manyEnrollments.map((e) => e.academicYearId);
+
+    axios.get.mockResolvedValueOnce({ data: { enrollments: manyEnrollments } });
+    axios.get.mockResolvedValueOnce({ data: { programs: mockPrograms } });
+    axios.get.mockResolvedValueOnce({ data: { years: mockYears } });
+
+    renderWithProviders(<Enrollments />);
+
+    await waitFor(() => expect(screen.getByText("User0 Lastname0")).toBeInTheDocument());
+
+    expect(screen.queryByText("User7 Lastname7")).not.toBeInTheDocument();
+
+    const pagination = screen.getByTestId("rows-per-page");
+    const selectTrigger = within(pagination).getByRole("combobox");
+
+    fireEvent.mouseDown(selectTrigger);
+    const option = await screen.findByRole("option", { name: "10" });
+    fireEvent.click(option);
+
+    expect(selectTrigger).toHaveTextContent("10");
+
+    await waitFor(() => expect(screen.getByText("User7 Lastname7")).toBeInTheDocument());
+  });
+
+  test("imports CSV and refreshes data", async () => {
+    const mockFile = new File(["name;email\nJohn;test@example.com"], "test.csv", { type: "text/csv" });
+
+    axios.get.mockResolvedValueOnce({ data: { enrollments: [] } });
+    axios.get.mockResolvedValueOnce({ data: { programs: [] } });
+    axios.get.mockResolvedValueOnce({ data: { years: [] } });
+    axios.post.mockResolvedValueOnce({ data: { errors: [] } });
+    axios.get.mockResolvedValueOnce({ data: { enrollments: [] } }); 
+
+    renderWithProviders(<Enrollments />);
+    await waitFor(() => expect(screen.getByTestId("enrollments-list-page")).toBeInTheDocument());
+
+    const fileInput = screen.getByTestId("enrollments-file-input");
+    fireEvent.change(fileInput, { target: { files: [mockFile] } });
+
+    await waitFor(() => expect(axios.post).toHaveBeenCalled());
   });
 });

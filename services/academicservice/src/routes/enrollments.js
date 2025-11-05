@@ -1,5 +1,5 @@
 // @ts-check
-const { Enrollment, StudyProgram } = require("../models");
+const { Enrollment, StudyProgram, AcademicYear } = require("../models");
 const axios = require("axios");
 const validation = require("../validation");
 const { checkExact } = require("express-validator");
@@ -137,4 +137,90 @@ module.exports = (app) => {
     }
   });
 
+  app.post("/enrollments/import/:universityId", async (req, res) => {
+    const { universityId } = req.params;
+    const { rows } = req.body; 
+    // rows = [{ email, studyProgram, academicYear }, ...]
+
+    try {
+      if (!rows?.length) {
+        return res.status(400).json({
+          success: false,
+          errorKey: "emptyCSV",
+        });
+      }
+
+      const { data } = await axios.get(`${AUTH_URL}/accounts/by-university/${universityId}`);
+      const accounts = data.accounts || [];
+      const students = accounts.filter((/** @type {{ role: string; }} */ a) => a.role === "student");
+
+      const added = [];
+      const errors = [];
+
+      for (const [index, row] of rows.entries()) {
+        const { email, studyProgram, academicYear } = row;
+
+        const found = students.find((/** @type {{ email: any; }} */ s) => s.email === email);
+        if (!found) {
+          errors.push({
+            line: index + 1,
+            data: email,
+            errorKey: "studentNotFound",
+          });
+          continue;
+        }
+
+        const sp = await StudyProgram.findOne({
+          name: studyProgram,
+          universityId,
+        }).lean();
+
+        if (!sp) {
+          errors.push({
+            line: index + 1,
+            data: studyProgram,
+            errorKey: "studyProgramNotFound",
+          });
+          continue;
+        }
+
+        const ay = await AcademicYear.findOne({
+          yearLabel: academicYear,
+          universityId,
+        }).lean();
+
+        if (!ay) {
+          errors.push({
+            line: index + 1,
+            data: academicYear,
+            errorKey: "academicYearNotFound",
+          });
+          continue;
+        }
+
+        const existing = await Enrollment.findOne({
+          accountId: found._id,
+          studyProgramId: sp._id,
+          academicYearId: ay._id,
+        }).lean();
+
+        if (existing) {
+          continue;
+        }
+
+        await Enrollment.create({
+          accountId: found._id,
+          studyProgramId: sp._id,
+          academicYearId: ay._id,
+        });
+
+        added.push(found._id);
+      }
+
+      return res.json({ success: true, added, errors });
+    } catch (err) {
+      console.error("Error importing enrollments:", err);
+      res.status(500).json({ success: false, errorKey: "serverError" });
+    }
+  });
 };

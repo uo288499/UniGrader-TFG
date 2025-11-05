@@ -40,4 +40,9 @@ describe("NotFound Page", () => {
 
     expect(mockNavigate).toHaveBeenCalledWith("/");
   });
+
+  it("renders the main container with correct test id", () => {
+    setup();
+    expect(screen.getByTestId("not-found-page")).toBeInTheDocument();
+  });
 });

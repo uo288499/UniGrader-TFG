@@ -93,4 +93,21 @@ describe("Login Page", () => {
       expect(screen.getByText(/error.genericError/i)).toBeInTheDocument();
     });
   });
+
+  it("toggles password visibility", () => {
+    setup();
+    const passwordInput = screen.getByLabelText(/login.passwordLabel/i);
+    const toggleButton = screen.getByLabelText(/aria.togglePassword/i);
+
+    expect(passwordInput).toHaveAttribute("type", "password");
+    fireEvent.click(toggleButton);
+    expect(passwordInput).toHaveAttribute("type", "text");
+  });
+
+  it("navigates to forgot password page", () => {
+    setup();
+    const forgotButton = screen.getByRole("button", { name: /login.forgotPassword/i });
+    fireEvent.click(forgotButton);
+    expect(mockNavigate).toHaveBeenCalledWith("/forgot-password");
+  });
 });

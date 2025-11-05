@@ -7,9 +7,6 @@ const cloudinary = require("cloudinary").v2;
 const mongoose = require("mongoose");
 const axios = require("axios");
 
-// ----------------------
-// MOCK CLOUDINARY
-// ----------------------
 jest.mock("cloudinary", () => {
   const uploaderMock = {
     upload: jest.fn().mockResolvedValue({ secure_url: "https://mocked.url/logo.jpg" }),
@@ -23,14 +20,8 @@ jest.mock("cloudinary", () => {
   };
 });
 
-// ----------------------
-// MOCK AXIOS
-// ----------------------
 jest.mock("axios");
 
-// ----------------------
-// SETUP DB & APP
-// ----------------------
 let mongoServer;
 let app;
 
@@ -49,9 +40,6 @@ afterAll(async () => {
   await mongoServer.stop();
 });
 
-// ----------------------
-// HELPERS
-// ----------------------
 const createTestUniversity = async () => {
   const university = await University.create({
     name: "Test University",
@@ -62,9 +50,6 @@ const createTestUniversity = async () => {
   return university;
 };
 
-// ----------------------
-// TESTS
-// ----------------------
 describe("Universities CRUD", () => {
   beforeEach(async () => {
     await University.deleteMany({});
@@ -267,6 +252,20 @@ describe("AcademicYears CRUD", () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.academicYear.yearLabel).toBe("2028/2029");
+  });
+
+  it("Should return 404 when updating a non-existing academic year", async () => {
+    const randomId = new mongoose.Types.ObjectId();
+    const res = await request(app).put(`/academicyears/${randomId}`).send({
+      yearLabel: "Nonexistent Year",
+      startDate: "2024-09-01",
+      endDate: "2025-06-30",
+      user: userMock,
+    });
+
+    expect(res.status).toBe(404);
+    expect(res.body.success).toBe(false);
+    expect(res.body.errorKey).toBe("notFound");
   });
 
   it("Should prevent updating to duplicate yearLabel in same university", async () => {
@@ -572,6 +571,17 @@ describe("EvaluationTypes CRUD", () => {
     expect(res.body.evaluationType.name).toBe("Written");
   });
 
+  it("Should return 404 when updating a non-existing evaluation type", async () => {
+    const res = await request(app).put("/evaluation-types/64e999999999999999999999").send({
+      name: "Updated",
+      user: { universityId: testUniversity._id },
+    });
+
+    expect(res.status).toBe(404);
+    expect(res.body.success).toBe(false);
+    expect(res.body.errorKey).toBe("notFound");
+  });
+
   it("Should not update to duplicate name in same university", async () => {
     const { EvaluationType } = require("../src/models");
     const t1 = await EvaluationType.create({
@@ -661,7 +671,6 @@ describe("Enrollments CRUD", () => {
       universityId: testUniversity._id,
     });
 
-    // Mock axios.get to return the "external" account
     axios.get.mockResolvedValue({
       data: { account: mockedAccount },
     });
@@ -790,6 +799,162 @@ describe("Enrollments CRUD", () => {
     const res = await request(app).delete("/enrollments/64e999999999999999999999");
     expect(res.status).toBe(404);
     expect(res.body.success).toBe(false);
+  });
+});
+
+describe("Enrollments Import", () => {
+  let testUniversity, testProgram, testYear;
+
+  const studentAccount = {
+    _id: new mongoose.Types.ObjectId(),
+    email: "uo288499@uniovi.es",
+    role: "student",
+  };
+
+  const teacherAccount = {
+    _id: new mongoose.Types.ObjectId(),
+    email: "teacher@uniovi.es",
+    role: "teacher",
+  };
+
+  beforeEach(async () => {
+    await University.deleteMany({});
+    await StudyProgram.deleteMany({});
+    await AcademicYear.deleteMany({});
+    await Enrollment.deleteMany({});
+
+    testUniversity = await University.create({
+      name: "Uni Import Test",
+      address: "Main St",
+      contactEmail: "uni@test.com",
+      contactPhone: "123456789",
+    });
+
+    testProgram = await StudyProgram.create({
+      name: "Ingeniería Informática del Software",
+      type: "Bachelor",
+      universityId: testUniversity._id,
+    });
+
+    testYear = await AcademicYear.create({
+      yearLabel: "2025/2026",
+      startDate: new Date("2025-09-01"),
+      endDate: new Date("2026-07-01"),
+      universityId: testUniversity._id,
+    });
+
+    axios.get.mockReset();
+  });
+
+  it("Should return 400 if CSV rows array is empty", async () => {
+    const res = await request(app)
+      .post(`/enrollments/import/${testUniversity._id}`)
+      .send({ rows: [] });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.errorKey).toBe("emptyCSV");
+  });
+
+  it("Should import enrollments successfully and skip duplicates", async () => {
+    axios.get.mockResolvedValue({
+      data: { accounts: [studentAccount, teacherAccount] },
+    });
+
+    await Enrollment.create({
+      accountId: studentAccount._id,
+      studyProgramId: testProgram._id,
+      academicYearId: testYear._id,
+    });
+
+    const res = await request(app)
+      .post(`/enrollments/import/${testUniversity._id}`)
+      .send({
+        rows: [
+          {
+            email: "uo288499@uniovi.es",
+            studyProgram: "Ingeniería Informática del Software",
+            academicYear: "2025/2026",
+          },
+          {
+            email: "teacher@uniovi.es", 
+            studyProgram: "Ingeniería Informática del Software",
+            academicYear: "2025/2026",
+          },
+          {
+            email: "fake@mail.com", 
+            studyProgram: "Ingeniería Informática del Software",
+            academicYear: "2025/2026",
+          },
+        ],
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+
+    expect(res.body.added).toHaveLength(0);
+
+    expect(res.body.errors.some(e => e.errorKey === "studentNotFound")).toBe(true);
+  });
+
+  it("Should detect missing studyProgram and academicYear", async () => {
+    axios.get.mockResolvedValue({
+      data: { accounts: [studentAccount] },
+    });
+
+    const res = await request(app)
+      .post(`/enrollments/import/${testUniversity._id}`)
+      .send({
+        rows: [
+          {
+            email: "uo288499@uniovi.es",
+            studyProgram: "Ingeniería Fake del Software",
+            academicYear: "2025/2026",
+          },
+          {
+            email: "uo288499@uniovi.es",
+            studyProgram: "Ingeniería Informática del Software",
+            academicYear: "2020/2021",
+          },
+        ],
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.errors).toHaveLength(2);
+    expect(res.body.errors.map(e => e.errorKey)).toEqual(
+      expect.arrayContaining(["studyProgramNotFound", "academicYearNotFound"])
+    );
+  });
+
+  it("Should add new enrollment when data is valid", async () => {
+    axios.get.mockResolvedValue({
+      data: { accounts: [studentAccount] },
+    });
+
+    const res = await request(app)
+      .post(`/enrollments/import/${testUniversity._id}`)
+      .send({
+        rows: [
+          {
+            email: "uo288499@uniovi.es",
+            studyProgram: "Ingeniería Informática del Software",
+            academicYear: "2025/2026",
+          },
+        ],
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.added).toHaveLength(1);
+    expect(res.body.errors).toHaveLength(0);
+
+    const inserted = await Enrollment.findOne({
+      accountId: studentAccount._id,
+      studyProgramId: testProgram._id,
+      academicYearId: testYear._id,
+    });
+    expect(inserted).not.toBeNull();
   });
 });
 
@@ -941,6 +1106,35 @@ describe("Subjects CRUD", () => {
     expect(res.body.subjects.length).toBe(1);
     expect(res.body.subjects[0].name).toBe("History");
   });
+
+  it("Should return 404 when updating a non-existing subject", async () => {
+    const res = await request(app).put("/subjects/64e999999999999999999999").send({
+      name: "Nonexistent",
+      code: "NON101",
+      studyProgramIds: [testProgram._id],
+      policyRules: [
+        { evaluationTypeId: new mongoose.Types.ObjectId(), minPercentage: 0, maxPercentage: 100 },
+      ],
+    });
+
+    expect(res.status).toBe(404);
+    expect(res.body.success).toBe(false);
+    expect(res.body.errorKey).toBe("notFound");
+  });
+
+  it("Should return 404 when getting a non-existing subject", async () => {
+    const res = await request(app).get("/subjects/64e999999999999999999999");
+    expect(res.status).toBe(404);
+    expect(res.body.success).toBe(false);
+    expect(res.body.errorKey).toBe("notFound");
+  });
+
+  it("Should return 404 when deleting a non-existing subject", async () => {
+    const res = await request(app).delete("/subjects/64e999999999999999999999");
+    expect(res.status).toBe(404);
+    expect(res.body.success).toBe(false);
+    expect(res.body.errorKey).toBe("notFound");
+  });
 });
 
 describe("Courses CRUD", () => {
@@ -993,6 +1187,7 @@ describe("Courses CRUD", () => {
       academicYearId: testYear._id,
       studyProgramId: testProgram._id,
       universityId: testUniversity._id,
+      maxGrade: 10,
       evaluationGroups: [
         { evaluationTypeId: new mongoose.Types.ObjectId(), totalWeight: 100, itemIds: [] },
       ],
@@ -1013,6 +1208,7 @@ describe("Courses CRUD", () => {
       academicYearId: testYear._id,
       subjectId: testSubject._id,
       studyProgramId: testProgram._id,
+      maxGrade: 10,
     });
 
     const res = await request(app).post("/courses").send({
@@ -1022,6 +1218,7 @@ describe("Courses CRUD", () => {
       academicYearId: testYear._id,
       studyProgramId: testProgram._id,
       universityId: testUniversity._id,
+      maxGrade: 10,
       evaluationGroups: [
         { evaluationTypeId: new mongoose.Types.ObjectId(), totalWeight: 100, itemIds: [] },
       ],
@@ -1040,6 +1237,7 @@ describe("Courses CRUD", () => {
       subjectId: testSubject._id,
       academicYearId: testYear._id,
       studyProgramId: testProgram._id,
+      maxGrade: 10,
       evaluationSystemId: new mongoose.Types.ObjectId(),
     });
 
@@ -1062,6 +1260,7 @@ describe("Courses CRUD", () => {
       subjectId: testSubject._id,
       academicYearId: testYear._id,
       studyProgramId: testProgram._id,
+      maxGrade: 10,
       evaluationGroups: [
         { evaluationTypeId: new mongoose.Types.ObjectId(), totalWeight: 100, itemIds: [] },
       ],
@@ -1075,6 +1274,7 @@ describe("Courses CRUD", () => {
       subjectId: testSubject._id,
       academicYearId: testYear._id,
       studyProgramId: testProgram._id,
+      maxGrade: 10,
       evaluationGroups: [
         { evaluationTypeId: new mongoose.Types.ObjectId(), totalWeight: 100, itemIds: [] },
       ],
@@ -1094,6 +1294,7 @@ describe("Courses CRUD", () => {
       subjectId: testSubject._id,
       academicYearId: testYear._id,
       studyProgramId: testProgram._id,
+      maxGrade: 10,
       evaluationSystemId: new mongoose.Types.ObjectId(),
     });
 
@@ -1117,6 +1318,7 @@ describe("Courses CRUD", () => {
       subjectId: testSubject._id,
       academicYearId: testYear._id,
       studyProgramId: testProgram._id,
+      maxGrade: 10,
     });
 
     const res = await request(app).get(`/courses/by-university/${testUniversity._id}`);
@@ -1136,6 +1338,7 @@ describe("Groups CRUD", () => {
     await Group.deleteMany({});
     await Course.deleteMany({});
     await University.deleteMany({});
+    await Enrollment.deleteMany({})
     jest.clearAllMocks();
 
     testUniversity = await University.create({
@@ -1153,6 +1356,7 @@ describe("Groups CRUD", () => {
       studyProgramId: new mongoose.Types.ObjectId(),
       universityId: testUniversity._id,
       evaluationGroups: [],
+      maxGrade: 10,
     });
 
     userMock = { _id: new mongoose.Types.ObjectId(), universityId: testUniversity._id };
@@ -1295,5 +1499,133 @@ describe("Groups CRUD", () => {
     expect(res.status).toBe(404);
     expect(res.body.success).toBe(false);
     expect(res.body.errorKey).toBe("notFound");
+  });
+});
+
+describe("Groups import methods", () => {
+  let testUniversity, testCourse;
+
+  beforeEach(async () => {
+    await Group.deleteMany({});
+    await Course.deleteMany({});
+    await University.deleteMany({});
+    await Enrollment.deleteMany({});
+    jest.clearAllMocks();
+
+    testUniversity = await University.create({
+      name: "Import Uni",
+      address: "A St",
+      contactEmail: "import@test.com",
+      contactPhone: "111111",
+    });
+
+    testCourse = await Course.create({
+      name: "Course B",
+      code: "C002",
+      subjectId: new mongoose.Types.ObjectId(),
+      academicYearId: new mongoose.Types.ObjectId(),
+      studyProgramId: new mongoose.Types.ObjectId(),
+      universityId: testUniversity._id,
+      evaluationGroups: [],
+      maxGrade: 10,
+    });
+  });
+
+  describe("Import professors", () => {
+    it("Should return 400 if emails list is empty", async () => {
+      const res = await request(app)
+        .post(`/groups/import-professors/${testUniversity._id}`)
+        .send({ emails: [] });
+      expect(res.status).toBe(400);
+      expect(res.body.errorKey).toBe("emptyCSV");
+    });
+
+    it("Should import professors by email and skip not found ones", async () => {
+      const professors = [
+        { _id: new mongoose.Types.ObjectId(), email: "p1@test.com", role: "professor" },
+        { _id: new mongoose.Types.ObjectId(), email: "p2@test.com", role: "professor" },
+      ];
+      const accounts = [...professors, { email: "other@student.com", role: "student" }];
+
+      jest.spyOn(axios, "get").mockResolvedValueOnce({ data: { accounts } });
+
+      const res = await request(app)
+        .post(`/groups/import-professors/${testUniversity._id}`)
+        .send({ emails: ["p1@test.com", "notfound@test.com"] });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.added).toHaveLength(1);
+      expect(res.body.errors).toHaveLength(1);
+      expect(res.body.errors[0].errorKey).toBe("professorNotFound");
+    });
+  });
+
+  describe("Import students", () => {
+    it("Should return 400 if emails list is empty", async () => {
+      const res = await request(app)
+        .post(`/groups/import-students/${testCourse._id}`)
+        .send({ emails: [] });
+      expect(res.status).toBe(400);
+      expect(res.body.errorKey).toBe("emptyCSV");
+    });
+
+    it("Should return 404 if course does not exist", async () => {
+      const res = await request(app)
+        .post("/groups/import-students/64e999999999999999999999")
+        .send({ emails: ["s1@test.com"] });
+      expect(res.status).toBe(404);
+      expect(res.body.errorKey).toBe("notFound");
+    });
+
+    it("Should import students respecting enrollment and skip invalid cases", async () => {
+      const student1 = { _id: new mongoose.Types.ObjectId(), email: "s1@test.com", role: "student" };
+      const student2 = { _id: new mongoose.Types.ObjectId(), email: "s2@test.com", role: "student" };
+      const accounts = [student1, student2, { email: "p@test.com", role: "professor" }];
+
+      jest.spyOn(axios, "get").mockResolvedValueOnce({ data: { accounts } });
+
+      await Enrollment.create({
+        accountId: student1._id,
+        studyProgramId: testCourse.studyProgramId,
+        academicYearId: testCourse.academicYearId,
+      });
+
+      const res = await request(app)
+        .post(`/groups/import-students/${testCourse._id}`)
+        .send({ emails: ["s1@test.com", "s2@test.com", "notfound@test.com"] });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.added).toHaveLength(1);
+      expect(res.body.errors.map(e => e.errorKey)).toContain("studentNotFound");
+      expect(res.body.errors.map(e => e.errorKey)).toContain("studentNotEnrolled");
+    });
+
+    it("Should skip students already assigned to other groups", async () => {
+      const student = { _id: new mongoose.Types.ObjectId(), email: "s3@test.com", role: "student" };
+      jest.spyOn(axios, "get").mockResolvedValueOnce({ data: { accounts: [student] } });
+
+      await Enrollment.create({
+        accountId: student._id,
+        studyProgramId: testCourse.studyProgramId,
+        academicYearId: testCourse.academicYearId,
+      });
+
+      await Group.create({
+        name: "Existing Group",
+        courseId: testCourse._id,
+        students: [student._id],
+      });
+
+      const res = await request(app)
+        .post(`/groups/import-students/${testCourse._id}`)
+        .send({ emails: ["s3@test.com"] });
+
+      expect(res.status).toBe(200);
+      expect(res.body.errors).toHaveLength(1);
+      expect(res.body.errors[0].errorKey).toBe("studentAlreadyInGroup");
+      expect(res.body.added).toHaveLength(0);
+    });
   });
 });

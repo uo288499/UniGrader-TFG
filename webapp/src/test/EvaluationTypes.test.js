@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
 import EvaluationTypes from "../pages/evaluationTypes/EvaluationTypes";
 import axios from "axios";
 import { SessionContext } from "../SessionContext";
@@ -114,5 +114,31 @@ describe("EvaluationTypes Page", () => {
     fireEvent.click(createButton);
 
     expect(mockNavigate).toHaveBeenCalledWith("/evaluation-types/new");
+  });
+
+  test("changes rows per page and resets page", async () => {
+    const manyTypes = Array.from({ length: 10 }, (_, i) => ({
+      _id: `t${i}`,
+      name: `Type ${i}`,
+    }));
+
+    axios.get.mockResolvedValueOnce({ data: { evaluationTypes: manyTypes } });
+
+    renderWithProviders(<EvaluationTypes />);
+
+    await waitFor(() => expect(screen.getByText("Type 0")).toBeInTheDocument());
+
+    expect(screen.queryByText("Type 7")).not.toBeInTheDocument();
+
+    const pagination = screen.getByTestId("rows-per-page");
+    const selectTrigger = within(pagination).getByRole("combobox");
+
+    fireEvent.mouseDown(selectTrigger);
+    const option = await screen.findByRole("option", { name: "10" });
+    fireEvent.click(option);
+
+    expect(selectTrigger).toHaveTextContent("10");
+
+    await waitFor(() => expect(screen.getByText("Type 7")).toBeInTheDocument());
   });
 });

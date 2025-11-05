@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import axios from "axios";
 import {
   Container,
+  Autocomplete,
   Paper,
   TextField,
   Button,
@@ -46,19 +47,16 @@ const Subjects = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
-  // Fetch subjects and study programs
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        // Subjects
         const { data: subjectsData } = await axios.get(
           `${GATEWAY_URL}/academic/subjects/by-university/${sessionUniversity}`
         );
         setSubjects(subjectsData?.subjects ?? []);
 
-        // Study Programs for filter dropdown
         const { data: spData } = await axios.get(
           `${GATEWAY_URL}/academic/studyPrograms/by-university/${sessionUniversity}`
         );
@@ -75,7 +73,6 @@ const Subjects = () => {
     fetchData();
   }, []);
 
-  // Filtered subjects
   const filteredSubjects = useMemo(() => {
     return subjects.filter((s) => {
       if (filters.name && !s.name.toLowerCase().includes(filters.name.toLowerCase())) return false;
@@ -118,21 +115,14 @@ const Subjects = () => {
             value={filters.code}
             onChange={(e) => setFilters({ ...filters, code: e.target.value })}
           />
-          <FormControl>
-            <InputLabel>{t("studyPrograms.program")}</InputLabel>
-            <Select
-              value={filters.studyProgram}
-              label={t("studyPrograms.program")}
-              onChange={(e) => setFilters({ ...filters, studyProgram: e.target.value })}
-            >
-              <MenuItem value="">{t("common.all")}</MenuItem>
-              {studyPrograms.map((sp) => (
-                <MenuItem key={sp._id} value={sp._id}>
-                  {sp.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Autocomplete
+            options={studyPrograms}
+            getOptionLabel={(sp) => sp.name || ""}
+            value={studyPrograms.find((sp) => sp._id === filters.studyProgram) || null}
+            onChange={(_, v) => setFilters({ ...filters, studyProgram: v?._id || "" })}
+            renderInput={(params) => <TextField {...params} label={t("studyPrograms.program")} />}
+            clearOnEscape
+          />
         </Box>
 
         <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 2 }}>
@@ -204,6 +194,7 @@ const Subjects = () => {
 
         {/* Pagination */}
         <TablePagination
+          data-testid="rows-per-page"
           component="div"
           count={filteredSubjects.length}
           page={page}

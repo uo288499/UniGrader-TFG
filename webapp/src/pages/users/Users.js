@@ -1,7 +1,8 @@
-import { useState, useEffect, useContext, useMemo } from "react";
+import { useState, useEffect, useContext, useMemo, useRef } from "react";
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
+import Papa from "papaparse";
 import {
   Container,
   Paper,
@@ -18,13 +19,14 @@ import {
   Chip,
   Avatar,
   CircularProgress,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   TablePagination,
+  Autocomplete,
+  Stack,
+  Alert,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
-import { Add as AddIcon, Edit as EditIcon } from "@mui/icons-material";
+import { Add as AddIcon, Edit as EditIcon, HelpOutline as HelpOutlineIcon } from "@mui/icons-material";
 import { SessionContext } from "../../SessionContext";
 
 const GATEWAY_URL = process.env.GATEWAY_URL || "http://localhost:8000";
@@ -32,11 +34,14 @@ const GATEWAY_URL = process.env.GATEWAY_URL || "http://localhost:8000";
 const Users = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { role: sessionRole, universityID: sessionUniversity } = useContext(SessionContext);
+  const { role: sessionRole, universityID: sessionUniversity, userId } = useContext(SessionContext);
 
   const [users, setUsers] = useState([]);
   const [universities, setUniversities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [errorKey, setErrorKey] = useState("");
+  const [csvErrors, setCsvErrors] = useState([]);
+  const csvInputRef = useRef(null);
 
   const [filters, setFilters] = useState({
     name: "",
@@ -66,40 +71,94 @@ const Users = () => {
     return colors[role] || "default";
   };
 
-  // Fetch data
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
 
-        const { data: usersData } = await axios.get(`${GATEWAY_URL}/authVerify/accounts`);
-        setUsers(usersData?.accounts ?? usersData ?? []);
+      const { data: usersData } = await axios.get(`${GATEWAY_URL}/authVerify/accounts`);
+      setUsers(usersData?.accounts ?? usersData ?? []);
 
-        if (sessionRole === "global-admin") {
-          const { data: uniData } = await axios.get(`${GATEWAY_URL}/academic/universities`);
-          setUniversities(uniData?.universities ?? uniData ?? []);
-        } else {
-          const { data: uniData } = await axios.get(
-            `${GATEWAY_URL}/academic/universities/${sessionUniversity}`
-          );
-          setUniversities([uniData.university]);
-          setFilters((prev) => ({ ...prev, university: sessionUniversity }));
-        }
-      } catch (err) {
-        console.error("Error fetching users/universities:", err);
-        setUsers([]);
-        setUniversities([]);
-      } finally {
-        setLoading(false);
+      if (sessionRole === "global-admin") {
+        const { data: uniData } = await axios.get(`${GATEWAY_URL}/academic/universities`);
+        setUniversities(uniData?.universities ?? uniData ?? []);
+      } else {
+        const { data: uniData } = await axios.get(
+          `${GATEWAY_URL}/academic/universities/${sessionUniversity}`
+        );
+        setUniversities([uniData.university]);
+        setFilters((prev) => ({ ...prev, university: sessionUniversity }));
       }
-    };
+    } catch (err) {
+      console.error("Error fetching users/universities:", err);
+      setUsers([]);
+      setUniversities([]);
+      setErrorKey("error.genericError");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
   }, []);
 
-  // Use useMemo to compute filtered users to avoid setState in useEffect
+  const handleImportCSV = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      delimiter: ";",
+      delimitersToGuess: [",", "\t", ";", "|"],
+      complete: async (results) => {
+        try {
+          const rows = results.data;
+          if (!rows.length) {
+            setErrorKey("error.emptyCSV");
+            if (csvInputRef.current) csvInputRef.current.value = "";
+            return;
+          }
+
+          setLoading(true);
+          const { data } = await axios.post(`${GATEWAY_URL}/authVerify/users/import`, { rows });
+
+          if (data.errors?.length) {
+            setCsvErrors(
+              data.errors.map((e) => ({
+                line: e.line,
+                data: e.data,
+                key: e.errorKey,
+              }))
+            );
+          } else {
+            setCsvErrors([]);
+          }
+
+          setErrorKey("");
+          await fetchData();
+        } catch (err) {
+          console.error("Import CSV error:", err);
+          const key = "error." + (err.response?.data?.errorKey || "genericError");
+          setErrorKey(key);
+        } finally {
+          setLoading(false);
+          if (csvInputRef.current) csvInputRef.current.value = "";
+        }
+      },
+    });
+  };
+
+  const handleUserClick = (userId) => navigate(`/users/${userId}`);
+  const handleCreateUser = () => navigate("/users/new");
+
   const filteredUsers = useMemo(() => {
-    return users.filter((u) => {
+    const visibleUsers =
+      sessionRole === "student" || sessionRole === "professor"
+        ? users.filter((u) => ["student", "professor"].includes(u.role))
+        : users;
+
+    return visibleUsers.filter((u) => {
       const fullName = `${u.userId.name} ${u.userId.firstSurname} ${u.userId.secondSurname || ""}`.toLowerCase();
       if (filters.name && !fullName.includes(filters.name.toLowerCase())) return false;
       if (filters.dni && !(u.userId.identityNumber || "").toLowerCase().includes(filters.dni.toLowerCase())) return false;
@@ -109,9 +168,6 @@ const Users = () => {
       return true;
     });
   }, [users, filters]);
-
-  const handleUserClick = (userId) => navigate(`/users/${userId}`);
-  const handleCreateUser = () => navigate("/users/new");
 
   if (loading) {
     return (
@@ -123,13 +179,71 @@ const Users = () => {
 
   return (
     <Container data-testid="users-list-page" maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      {errorKey && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {t(errorKey)}
+        </Alert>
+      )}
+
+      {csvErrors.length > 0 && (
+        <Stack spacing={1} sx={{ mb: 2 }}>
+          {csvErrors.map((e, idx) => (
+            <Alert
+              key={idx}
+              severity="warning"
+              onClose={() => setCsvErrors((prev) => prev.filter((_, i) => i !== idx))}
+              sx={{
+                borderRadius: 2,
+                alignItems: "center",
+                "& .MuiAlert-message": { width: "100%" },
+              }}
+            >
+              {e.line ? (
+                <>
+                  {t("error." + e.key)} → <strong>{e.data}</strong> ({t("line")} {e.line})
+                </>
+              ) : (
+                <>
+                  {t("error." + e.key)} → <strong>{e.data}</strong>
+                </>
+              )}
+            </Alert>
+          ))}
+        </Stack>
+      )}
+
       <Paper sx={{ p: 3 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <Typography variant="h4">{t("usersNav")}</Typography>
           {sessionRole !== "student" && sessionRole !== "professor" && (
-            <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreateUser}>
-              {t("user.new")}
-            </Button>
+            <Box display="flex" gap={1} alignItems="center">
+              <Button variant="outlined" component="label" color="primary">
+                {t("users.import")}
+                <input
+                  data-testid="users-file-input"
+                  key={Date.now()}
+                  type="file"
+                  accept=".csv"
+                  hidden
+                  ref={csvInputRef}
+                  onChange={handleImportCSV}
+                />
+              </Button>
+
+              <Tooltip
+                title={t("users.csvHelp")}
+                arrow
+                placement="right"
+              >
+                <IconButton color="info" size="small">
+                  <HelpOutlineIcon />
+                </IconButton>
+              </Tooltip>
+
+              <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreateUser}>
+                {t("user.new")}
+              </Button>
+            </Box>
           )}
         </Box>
 
@@ -153,38 +267,24 @@ const Users = () => {
             onChange={(e) => setFilters({ ...filters, email: e.target.value })}
             autoComplete="off"
           />
-          <FormControl>
-            <InputLabel>{t("user.role")}</InputLabel>
-            <Select
-              value={filters.role}
-              label={t("user.role")}
-              onChange={(e) => setFilters({ ...filters, role: e.target.value })}
-            >
-              <MenuItem value="">{t("common.all")}</MenuItem>
-              {roleOptions[sessionRole].map((role) => (
-                <MenuItem key={role} value={role}>
-                  {t(`user.roles.${role}`)}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
 
-          <FormControl>
-            <InputLabel>{t("universities.uni")}</InputLabel>
-            <Select
-              value={filters.university}
-              label={t("universities.uni")}
-              onChange={(e) => setFilters({ ...filters, university: e.target.value })}
-              disabled={sessionRole !== "global-admin"}
-            >
-              {sessionRole === "global-admin" && <MenuItem value="">{t("common.all")}</MenuItem>}
-              {universities.map((university) => (
-                <MenuItem key={university._id} value={university._id}>
-                  {university.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Autocomplete
+            options={roleOptions[sessionRole]}
+            value={filters.role || null}
+            onChange={(e, v) => setFilters({ ...filters, role: v || "" })}
+            getOptionLabel={(role) => t(`user.roles.${role}`)}
+            renderInput={(params) => <TextField {...params} label={t("user.role")} />}
+          />
+
+          <Autocomplete
+            options={universities}
+            getOptionLabel={(u) => u.name || ""}
+            value={universities.find((u) => u._id === filters.university) || null}
+            onChange={(e, v) => setFilters({ ...filters, university: v?._id || "" })}
+            renderInput={(params) => <TextField {...params} label={t("universities.uni")} />}
+            disabled={sessionRole !== "global-admin"}
+            ListboxProps={{ style: { maxHeight: 200 } }}
+          />
         </Box>
 
         <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 2 }}>
@@ -200,7 +300,6 @@ const Users = () => {
                 university: sessionRole !== "global-admin" ? sessionUniversity : "",
               })
             }
-            sx={{ whiteSpace: "nowrap" }}
           >
             {t("resetFilters")}
           </Button>
@@ -216,7 +315,7 @@ const Users = () => {
                 <TableCell sx={{ fontWeight: "bold" }}>{t("user.email")}</TableCell>
                 <TableCell sx={{ fontWeight: "bold" }}>{t("user.role")}</TableCell>
                 <TableCell sx={{ fontWeight: "bold" }}>{t("universities.uni")}</TableCell>
-                <TableCell />
+                {sessionRole !== "student" && sessionRole !== "professor" && <TableCell />}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -242,19 +341,21 @@ const Users = () => {
                   <TableCell>
                     <Chip label={t(`user.roles.${user.role}`)} color={getRoleColor(user.role)} size="small" />
                   </TableCell>
-                  <TableCell>{user.university?.university.name || "—"}</TableCell>
-                  <TableCell>
-                    <EditIcon
-                      data-testid={`edit-button-${user._id}`}
-                      fontSize="small"
-                      color="primary"
-                      sx={{ cursor: "pointer" }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleUserClick(user._id);
-                      }}
-                    />
-                  </TableCell>
+                  <TableCell>{user.university?.university?.name || "—"}</TableCell>
+                  {sessionRole !== "student" && sessionRole !== "professor" && (
+                    <TableCell>
+                      <EditIcon
+                        data-testid={`edit-button-${user._id}`}
+                        fontSize="small"
+                        color="primary"
+                        sx={{ cursor: "pointer" }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUserClick(user._id);
+                        }}
+                      />
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
               {filteredUsers.length === 0 && (
@@ -270,8 +371,8 @@ const Users = () => {
           </Table>
         </TableContainer>
 
-        {/* Pagination */}
         <TablePagination
+          data-testid="rows-per-page"
           component="div"
           count={filteredUsers.length}
           page={page}

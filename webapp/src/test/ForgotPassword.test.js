@@ -94,4 +94,49 @@ describe("ForgotPassword Page", () => {
 
     expect(mockNavigate).toHaveBeenCalledWith("/login");
   });
+
+  it("disables button while loading", async () => {
+    setup();
+
+    const emailInput = screen.getByLabelText(/forgotPassword.emailLabel/i);
+    fireEvent.input(emailInput, { target: { value: "test@example.com" } });
+
+    mockAxios.onPost(`${GATEWAY_URL}/auth/forgot-password`).reply(() => {
+      return new Promise((resolve) =>
+        setTimeout(() => resolve([200, {}]), 100)
+      );
+    });
+
+    const sendButton = screen.getByRole("button", { name: /forgotPassword.sendButton/i });
+    fireEvent.click(sendButton);
+
+    expect(sendButton).toBeDisabled();
+
+    await waitFor(() =>
+      expect(screen.getByText(/forgotPassword.successMessage/i)).toBeInTheDocument()
+    );
+  });
+
+  it("clears success message after timeout", async () => {
+    jest.useFakeTimers();
+    setup();
+
+    const emailInput = screen.getByLabelText(/forgotPassword.emailLabel/i);
+    fireEvent.input(emailInput, { target: { value: "test@example.com" } });
+
+    mockAxios.onPost(`${GATEWAY_URL}/auth/forgot-password`).reply(200, {});
+    const sendButton = screen.getByRole("button", { name: /forgotPassword.sendButton/i });
+    fireEvent.click(sendButton);
+
+    await waitFor(() =>
+      expect(screen.getByText(/forgotPassword.successMessage/i)).toBeInTheDocument()
+    );
+
+    jest.advanceTimersByTime(2100);
+
+    await waitFor(() =>
+      expect(screen.queryByText(/forgotPassword.successMessage/i)).not.toBeInTheDocument()
+    );
+    jest.useRealTimers();
+  });
 });

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import Groups from "../pages/groups/Groups";
 import axios from "axios";
 import { SessionContext } from "../SessionContext";
@@ -23,8 +23,8 @@ describe("Groups Page", () => {
   ];
 
   const mockCourses = [
-    { _id: "c1", name: "Calculus" },
-    { _id: "c2", name: "Physics 1" },
+    { _id: "c1", name: "Calculus", academicYearId: { yearLabel: "2024/2025" } },
+    { _id: "c2", name: "Physics 1", academicYearId: { yearLabel: "2024/2025" } },
   ];
 
   beforeEach(() => {
@@ -78,10 +78,10 @@ describe("Groups Page", () => {
     await waitFor(() => screen.getByText("Group A"));
 
     const selects = screen.getAllByRole("combobox");
-    const courseSelect = selects[1]; 
+    const courseSelect = selects[1];
     fireEvent.mouseDown(courseSelect);
 
-    const option = await screen.findByText("Calculus");
+    const option = await screen.findByText("Calculus - 2024/2025");
     fireEvent.click(option);
 
     await waitFor(() => {
@@ -119,5 +119,39 @@ describe("Groups Page", () => {
     fireEvent.click(createButton);
 
     expect(mockNavigate).toHaveBeenCalledWith("/groups/new");
+  });
+  
+  test("changes rows per page and resets page", async () => {
+    const manyGroups = Array.from({ length: 10 }, (_, i) => ({
+      _id: `g${i}`,
+      name: `Group ${i}`,
+      courseId: { _id: `c${i}`, name: `Course ${i}` },
+    }));
+
+    const manyCourses = manyGroups.map((g) => ({
+      _id: g.courseId._id,
+      name: g.courseId.name,
+      academicYearId: { yearLabel: "2024/2025" },
+    }));
+
+    axios.get.mockResolvedValueOnce({ data: { groups: manyGroups } });
+    axios.get.mockResolvedValueOnce({ data: { courses: manyCourses } });
+
+    renderWithProviders(<Groups />);
+
+    await waitFor(() => expect(screen.getByText("Group 0")).toBeInTheDocument());
+
+    expect(screen.queryByText("Group 7")).not.toBeInTheDocument();
+
+    const pagination = screen.getByTestId("rows-per-page");
+    const selectTrigger = within(pagination).getByRole("combobox");
+
+    fireEvent.mouseDown(selectTrigger);
+    const option = await screen.findByRole("option", { name: "10" });
+    fireEvent.click(option);
+
+    expect(selectTrigger).toHaveTextContent("10");
+
+    await waitFor(() => expect(screen.getByText("Group 7")).toBeInTheDocument());
   });
 });

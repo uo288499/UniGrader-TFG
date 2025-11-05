@@ -1,17 +1,15 @@
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
 import StudyPrograms from "../pages/studyPrograms/StudyPrograms";
 import axios from "axios";
 import { BrowserRouter } from "react-router";
 import { SessionContext } from "../SessionContext";
 
-// Mock i18n
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key) => key,
   }),
 }));
 
-// Mock navigate
 const mockNavigate = jest.fn();
 jest.mock("react-router", () => ({
   ...jest.requireActual("react-router"),
@@ -190,5 +188,31 @@ describe("StudyPrograms Page", () => {
 
     fireEvent.click(screen.getByLabelText("Go to next page"));
     expect(screen.getByText("Program 5")).toBeInTheDocument();
+  });
+
+  test("changes rows per page and resets page", async () => {
+    const manyPrograms = Array.from({ length: 12 }, (_, i) => ({
+      _id: `p${i}`,
+      name: `Program ${i}`,
+      type: "Bachelor",
+    }));
+
+    axios.get.mockResolvedValueOnce({ data: { programs: manyPrograms } });
+
+    renderWithProviders(<StudyPrograms />);
+
+    await waitFor(() => expect(screen.getByText("Program 0")).toBeInTheDocument());
+    expect(screen.queryByText("Program 7")).not.toBeInTheDocument(); 
+
+    const pagination = screen.getByTestId("rows-per-page");
+    const selectTrigger = within(pagination).getByRole("combobox");
+
+    fireEvent.mouseDown(selectTrigger);
+    const option = await screen.findByRole("option", { name: "10" });
+    fireEvent.click(option);
+
+    expect(selectTrigger).toHaveTextContent("10");
+
+    await waitFor(() => expect(screen.getByText("Program 7")).toBeInTheDocument());
   });
 });

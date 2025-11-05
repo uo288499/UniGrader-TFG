@@ -14,6 +14,7 @@ import {
   TableRow,
   Box,
   Paper,
+  Autocomplete,
   CircularProgress,
   TablePagination,
   FormControl,
@@ -39,13 +40,11 @@ const StudyPrograms = () => {
   const [studyPrograms, setStudyPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Filters
   const [filters, setFilters] = useState({
     name: "",
     type: "",
   });
 
-  // Pagination
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
@@ -58,7 +57,6 @@ const StudyPrograms = () => {
     "Other",
   ];
 
-  // Fetch data: Study Programs for the sessionUniversity
   useEffect(() => {
     const fetchPrograms = async () => {
       if (!sessionUniversity) {
@@ -85,7 +83,6 @@ const StudyPrograms = () => {
     fetchPrograms();
   }, [sessionUniversity]);
 
-  // Filtered Study Programs using useMemo
   const filteredStudyPrograms = useMemo(() => {
     let result = studyPrograms;
 
@@ -101,7 +98,6 @@ const StudyPrograms = () => {
     return result;
   }, [filters, studyPrograms]);
 
-  // Reset page when filters change
   useEffect(() => {
     setPage(0);
   }, [filters]);
@@ -171,21 +167,16 @@ const StudyPrograms = () => {
             autoComplete="off"
           />
 
-          <FormControl>
-            <InputLabel>{t("studyPrograms.type")}</InputLabel>
-            <Select
-              value={filters.type}
-              label={t("studyPrograms.type")}
-              onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-            >
-              <MenuItem value="">{t("all")}</MenuItem>
-              {programTypes.map((type) => (
-                <MenuItem key={type} value={type}>
-                  {t(`studyPrograms.types.${type}`)}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Autocomplete
+            options={programTypes} 
+            getOptionLabel={(option) => t(`studyPrograms.types.${option}`) }
+            value={filters.type || null}
+            onChange={(e, value) => setFilters({ ...filters, type: value || "" })}
+            renderInput={(params) => (
+              <TextField {...params} label={t("studyPrograms.type")} variant="outlined" />
+            )}
+            disableClearable={false}
+          />
         </Box>
 
         <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 2 }}>
@@ -266,6 +257,7 @@ const StudyPrograms = () => {
 
         {/* Pagination */}
         <TablePagination
+          data-testid="rows-per-page"
           component="div"
           count={filteredStudyPrograms.length}
           page={page}

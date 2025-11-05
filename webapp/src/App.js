@@ -26,6 +26,11 @@ import Enrollments from './pages/enrollments/Enrollments';
 import EnrollmentForm from './pages/enrollments/EnrollmentForm';
 import Groups from './pages/groups/Groups';
 import GroupForm from './pages/groups/GroupForm';
+import EvaluationItemsForm from './pages/evaluationItems/EvaluationItemsForm';
+import GradesManagement from './pages/grades/GradesManagement';
+import Grades from './pages/grades/Grades';
+import Footer from "./components/Footer";
+import Profile from "./pages/users/Profile";
 
 
 import './i18n/i18n';
@@ -42,13 +47,14 @@ function App({ themeMode, setThemeMode, isLargeTextMode, setIsLargeTextMode }) {
       />
       <Box sx={{
         marginTop: 10,
+        paddingBottom: 12,
         backgroundColor: 'background.default',
         color: 'text.primary',
       }}>
         <CssBaseline />
         <Routes>
           {/* Home Page */}
-          <Route path="/" element={<PrivateRoute element={<Home />} />} />
+          <Route path="/" element={<PrivateRoute element={<Home themeMode={themeMode} />} />} />
           {/* Login Page */}
           <Route path="/login" element={<Login />} />
           {/* Forgot Password Page */}
@@ -60,9 +66,11 @@ function App({ themeMode, setThemeMode, isLargeTextMode, setIsLargeTextMode }) {
           <Route path="/universities/new" element={<PrivateRoute element={<UniversityForm /> } roles={["global-admin"]} />} />
           <Route path="/universities/:id" element={<PrivateRoute element={<UniversityForm/>} roles={["global-admin", "admin"]} />} />
           {/* Users Page */}
-          <Route path="/users" element={<PrivateRoute element={<Users />} roles={["global-admin", "admin"]} />} />
+          <Route path="/users" element={<PrivateRoute element={<Users />} roles={["global-admin", "admin", "professor", "student"]} />} />
           <Route path="/users/new" element={<PrivateRoute element={<UserForm />} roles={["global-admin", "admin"]} />} />
           <Route path="/users/:id" element={<PrivateRoute element={<UserForm />} roles={["global-admin", "admin"]} />} />
+          {/* Profile Page */}
+          <Route path="/profile/:id" element={<PrivateRoute element={<Profile />} roles={["global-admin", "admin", "professor", "student"]} />} />
           {/* Study Programs Page */}
           <Route path="/study-programs" element={<PrivateRoute element={<StudyPrograms />} roles={["admin"]} />} />
           <Route path="/study-programs/new" element={<PrivateRoute element={<StudyProgramForm />} roles={["admin"]} />} />
@@ -91,10 +99,16 @@ function App({ themeMode, setThemeMode, isLargeTextMode, setIsLargeTextMode }) {
           <Route path="/groups" element={<PrivateRoute element={<Groups />} roles={["admin", "professor"]} />} />
           <Route path="/groups/new" element={<PrivateRoute element={<GroupForm />} roles={["admin"]} />} />
           <Route path="/groups/:id" element={<PrivateRoute element={<GroupForm />} roles={["admin", "professor"]} />} />
+          {/* Evaluation Items Page */}
+          <Route path="/groups/:id/evaluation-items" element={<PrivateRoute element={<EvaluationItemsForm />} roles={["professor"]} />} />
+          {/* Grades Page */}
+          <Route path="/grades-management/:id" element={<PrivateRoute element={<GradesManagement />} roles={["professor"]} />} />
+          <Route path="/grades/:id" element={<PrivateRoute element={<Grades />} roles={["student"]} />} />
           {/* Not Existing Path */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Box>
+      <Footer themeMode={themeMode} />
     </>
   );
 }

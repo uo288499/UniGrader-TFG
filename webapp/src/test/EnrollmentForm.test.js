@@ -65,27 +65,22 @@ describe("EnrollmentForm Page", () => {
 
     renderWithContext(<EnrollmentForm />);
 
-    // --- Study Program ---
     const programSelect = (await screen.findAllByRole("combobox"))[0]; // primer select
     fireEvent.mouseDown(programSelect);
     fireEvent.click(screen.getByText("Program 1"));
 
-    // --- Academic Year ---
     const yearSelect = (await screen.findAllByRole("combobox"))[1]; // segundo select
     fireEvent.mouseDown(yearSelect);
     fireEvent.click(screen.getByText("2024/25"));
 
-    // --- Student Account (Autocomplete) ---
     const studentInput = screen.getByLabelText(/studentAccount/i);
     fireEvent.change(studentInput, { target: { value: "John" } });
     await waitFor(() => screen.getByText(/John Doe/i));
     fireEvent.click(screen.getByText(/John Doe/i));
 
-    // --- Submit ---
     const submitButton = screen.getByRole("button", { name: /create/i });
     await act(async () => fireEvent.click(submitButton));
 
-    // --- Verificación ---
     await waitFor(() => {
       expect(screen.getByText(/enrollments.success.created/i)).toBeInTheDocument();
     });
@@ -94,7 +89,6 @@ describe("EnrollmentForm Page", () => {
   it("handles server error on submit", async () => {
     ReactRouter.useParams.mockReturnValue({});
 
-    // Mocks
     mockAxios
         .onGet(`${GATEWAY_URL}/academic/studyprograms/by-university/uni1`)
         .reply(200, { programs: [{ _id: "p1", name: "Program 1" }] });
@@ -117,7 +111,6 @@ describe("EnrollmentForm Page", () => {
 
     renderWithContext(<EnrollmentForm />);
 
-    // --- Study Program ---
     const programSelect = (await screen.findAllByRole("combobox"))[0];
     fireEvent.mouseDown(programSelect);
 
@@ -126,7 +119,6 @@ describe("EnrollmentForm Page", () => {
         fireEvent.click(within(listbox).getByText("Program 1"));
     });
 
-    // --- Academic Year ---
     const yearSelect = (await screen.findAllByRole("combobox"))[1];
     fireEvent.mouseDown(yearSelect);
 
@@ -135,19 +127,112 @@ describe("EnrollmentForm Page", () => {
         fireEvent.click(within(listbox).getByText("2024/25"));
     });
 
-    // --- Student Account (Autocomplete) ---
     const studentInput = screen.getByLabelText(/studentAccount/i);
     fireEvent.change(studentInput, { target: { value: "John" } });
 
     await waitFor(() => screen.getByText(/John Doe/i));
     fireEvent.click(screen.getByText(/John Doe/i));
 
-    // --- Submit ---
     const submitButton = screen.getByRole("button", { name: /create/i });
     await act(async () => fireEvent.click(submitButton));
 
     await waitFor(() => {
         expect(screen.getByText(/error.serverError/i)).toBeInTheDocument();
     });
+  });
+
+  it("loads enrollment data when editing", async () => {
+    ReactRouter.useParams.mockReturnValue({ id: "e1" });
+
+    mockAxios.onGet(`${GATEWAY_URL}/academic/enrollments/e1`).reply(200, {
+      enrollment: {
+        _id: "e1",
+        studyProgramId: { _id: "p1", universityId: "uni1" },
+        academicYearId: { _id: "y1" },
+        accountId: "a1",
+      },
     });
+
+    mockAxios.onGet(`${GATEWAY_URL}/academic/studyprograms/by-university/uni1`).reply(200, { programs: [{ _id: "p1", name: "Program 1" }] });
+    mockAxios.onGet(`${GATEWAY_URL}/authVerify/accounts/by-university/uni1`).reply(200, {
+      accounts: [{ _id: "a1", role: "student", userId: { identityNumber: "123", name: "John", firstSurname: "Doe" }, email: "john@example.com" }],
+    });
+    mockAxios.onGet(`${GATEWAY_URL}/academic/academicYears/by-university/uni1`).reply(200, { years: [{ _id: "y1", yearLabel: "2024/25" }] });
+
+    renderWithContext(<EnrollmentForm />);
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Program 1")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("2024/25")).toBeInTheDocument();
+      expect(screen.getByDisplayValue(/John Doe/)).toBeInTheDocument();
+    });
+  });
+
+  it("loads an existing enrollment successfully", async () => {
+    ReactRouter.useParams.mockReturnValue({ id: "e1" });
+
+    mockAxios.onGet(`${GATEWAY_URL}/academic/enrollments/e1`).reply(200, {
+      enrollment: {
+        _id: "e1",
+        studyProgramId: { _id: "p1", universityId: "uni1" },
+        academicYearId: { _id: "y1" },
+        accountId: "a1",
+      },
+    });
+
+    mockAxios.onGet(`${GATEWAY_URL}/academic/studyprograms/by-university/uni1`).reply(200, { programs: [{ _id: "p1", name: "Program 1" }] });
+    mockAxios.onGet(`${GATEWAY_URL}/authVerify/accounts/by-university/uni1`).reply(200, {
+      accounts: [{ _id: "a1", role: "student", userId: { identityNumber: "123", name: "John", firstSurname: "Doe" }, email: "john@example.com" }],
+    });
+    mockAxios.onGet(`${GATEWAY_URL}/academic/academicYears/by-university/uni1`).reply(200, { years: [{ _id: "y1", yearLabel: "2024/25" }] });
+
+    mockAxios.onPost(`${GATEWAY_URL}/academic/enrollments`).reply(200, { enrollment: { _id: "e1" } });
+
+    renderWithContext(<EnrollmentForm />);
+
+    await waitFor(() => expect(screen.getByDisplayValue("Program 1")).toBeInTheDocument());
+  });
+
+  it("handles delete confirmation and success", async () => {
+    ReactRouter.useParams.mockReturnValue({ id: "e1" });
+    jest.spyOn(window, "confirm").mockReturnValue(true);
+
+    mockAxios.onGet(`${GATEWAY_URL}/academic/enrollments/e1`).reply(200, {
+      enrollment: {
+        _id: "e1",
+        studyProgramId: { _id: "p1", universityId: "uni1" },
+        academicYearId: { _id: "y1" },
+        accountId: "a1",
+      },
+    });
+    mockAxios.onDelete(`${GATEWAY_URL}/academic/enrollments/e1`).reply(200);
+
+    renderWithContext(<EnrollmentForm />);
+    const deleteButton = await screen.findByRole("button", { name: /delete/i });
+    await act(async () => fireEvent.click(deleteButton));
+
+    await waitFor(() => expect(screen.getByText(/enrollments.success.deleted/i)).toBeInTheDocument());
+  });
+
+  it("handles delete cancel", async () => {
+    ReactRouter.useParams.mockReturnValue({ id: "e1" });
+    jest.spyOn(window, "confirm").mockReturnValue(false);
+
+    mockAxios.onGet(`${GATEWAY_URL}/academic/enrollments/e1`).reply(200, {
+      enrollment: {
+        _id: "e1",
+        studyProgramId: { _id: "p1", universityId: "uni1" },
+        academicYearId: { _id: "y1" },
+        accountId: "a1",
+      },
+    });
+
+    renderWithContext(<EnrollmentForm />);
+    const deleteButton = await screen.findByRole("button", { name: /delete/i });
+    await act(async () => fireEvent.click(deleteButton));
+
+    expect(mockNavigate).not.toHaveBeenCalledWith("/enrollments");
+  });
 });
+
+

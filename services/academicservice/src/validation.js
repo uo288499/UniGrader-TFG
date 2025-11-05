@@ -99,6 +99,9 @@ module.exports = {
     academicYearId: body("academicYearId").isMongoId(),
     evaluationGroups: body("evaluationGroups").isArray({ min: 1 }),
     studyProgramId: body("studyProgramId").isMongoId(),
+    maxGrade: body("maxGrade")
+      .isNumeric()
+      .custom((v) => v >= 0 && v <= 10),
     // --- Enrollment Fields ---
     accountId: body("accountId").isMongoId(),
     // --- Group Fields ---

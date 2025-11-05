@@ -67,9 +67,10 @@ const UniversityForm = () => {
   const smallLogoInputRef = useRef(null);
   const largeLogoInputRef = useRef(null);
 
-  const { role, universityID } = useContext(SessionContext);
+  const [initialLargeLogo, setInitialLargeLogo] = useState("");
 
-  // Load existing university data if editing
+  const { role, universityID, toggleUniversityImageUpdated  } = useContext(SessionContext);
+
   useEffect(() => {
     if (role !== "global-admin" && universityID !== id) {
       navigate("/not-found");
@@ -90,6 +91,8 @@ const UniversityForm = () => {
           smallLogo: universityData.smallLogoUrl || "",
           largeLogo: universityData.largeLogoUrl || "",
         });
+
+        setInitialLargeLogo(universityData.largeLogoUrl || "");
       } catch (err) {
         const key = "error." + (err.response?.data?.errorKey || err.response?.errorKey || "genericError");
         setErrorKey(key);
@@ -101,12 +104,12 @@ const UniversityForm = () => {
     if (isEditing) fetchUniversity();
 
     if (!isEditing) {
+      setInitialLargeLogo("");
       setImagePreviews({ smallLogo: "", largeLogo: "" });
       setImageFiles({ smallLogo: null, largeLogo: null });
     }
   }, [id, isEditing, navigate, role, universityID]);
 
-  // Manage global success/error messages
   useEffect(() => {
     if (errorKey) {
       setSubmitError(t(errorKey));
@@ -248,6 +251,15 @@ const UniversityForm = () => {
       const updatedUniversity = response.data.university;
       setFormData(updatedUniversity);
       setImageFiles({ smallLogo: null, largeLogo: null });
+
+      const currentLargeLogo = updatedUniversity.largeLogoUrl || "";
+      const hasChangedLargeLogo =
+        currentLargeLogo !== initialLargeLogo;
+
+      if (hasChangedLargeLogo) {
+        toggleUniversityImageUpdated();
+        setInitialLargeLogo(currentLargeLogo);
+      }
 
       if (!isEditing) {
         const newId = updatedUniversity._id || updatedUniversity.id;

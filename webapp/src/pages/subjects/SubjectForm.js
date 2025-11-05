@@ -20,6 +20,7 @@ import {
   IconButton,
   List,
   ListItem,
+  Autocomplete,
   ListItemText,
 } from "@mui/material";
 import {
@@ -47,6 +48,9 @@ const SubjectForm = () => {
     studyPrograms: [],
   });
 
+  const [availableFilter, setAvailableFilter] = useState("");
+  const [selectedFilter, setSelectedFilter] = useState("");
+
   const [policyData, setPolicyData] = useState({
     policyRules: [{ evaluationTypeId: "", minPercentage: 0, maxPercentage: 100 }],
   });
@@ -63,7 +67,6 @@ const SubjectForm = () => {
   const [submitSuccess, setSubmitSuccess] = useState("");
   const [successKey, setSuccessKey] = useState("");
 
-  // Fetch data
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -108,7 +111,6 @@ const SubjectForm = () => {
     if (universityID) fetchData();
   }, [id, isEditing, universityID]);
 
-  // Global error/success translation
   useEffect(() => {
     setSubmitError(errorKey ? t(errorKey) : "");
     setSubmitSuccess(successKey ? t(successKey) : "");
@@ -188,6 +190,7 @@ const SubjectForm = () => {
         newErrors.policyGlobalMax = "subject.error.globalMaxInsufficient";
     }
 
+    /* Decidido eliminar esta comprobación
     // Critical validations
     policyData.policyRules.forEach((rule, idx) => {
         const otherMins = policyData.policyRules
@@ -206,8 +209,8 @@ const SubjectForm = () => {
         // Avoid "blocking by maxs"
         if (rule.maxPercentage + otherMins > 100) {
             newErrors[`maxBlock_${idx}`] = "subject.error.blockedByMaxs";
-        }
-    });
+        }   
+    });*/
 
     const usedTypes = {};
     policyData.policyRules.forEach((rule, idx) => {
@@ -409,63 +412,98 @@ const SubjectForm = () => {
 
               {/* StudyPrograms dual list */}
               <Grid item xs={12}>
-                <Typography variant="h5" fontWeight="bold" mb={2}>{t("subject.studyPrograms")}</Typography>
+                <Typography variant="h5" fontWeight="bold" mb={2}>
+                  {t("subject.studyPrograms")}
+                </Typography>
                 <Grid container spacing={2}>
+                  {/* Available Programs */}
                   <Grid item xs={6}>
-                    <Typography variant="h6">
-                      {t("subject.availablePrograms")}
-                    </Typography>
+                    <Typography variant="h6">{t("subject.availablePrograms")}</Typography>
+                    
+                    {/* Search Filter */}
+                    <TextField
+                      size="small"
+                      placeholder={t("subject.search")}
+                      value={availableFilter}
+                      onChange={(e) => setAvailableFilter(e.target.value)}
+                      fullWidth
+                      sx={{ mb: 1 }}
+                    />
+
                     <Box
                       border={availablePrograms.length ? 1 : 0}
                       borderColor="grey.300"
                       borderRadius={2}
                       p={1}
+                      sx={{ maxHeight: 300, overflowY: "auto" }}
                     >
                       <List dense>
-                        {availablePrograms.map((sp) => (
-                          <ListItem
-                            key={sp._id}
-                            secondaryAction={
-                              <IconButton
-                                aria-label="add program"
-                               onClick={() => addStudyProgram(sp._id)} color="primary">
-                                <AddIcon fontSize="large" />
-                              </IconButton>
-                            }
-                          >
-                            <ListItemText primary={sp.name} />
-                          </ListItem>
-                        ))}
+                        {availablePrograms
+                          .filter((sp) =>
+                            sp.name.toLowerCase().includes(availableFilter.toLowerCase())
+                          )
+                          .map((sp) => (
+                            <ListItem
+                              key={sp._id}
+                              secondaryAction={
+                                <IconButton
+                                  aria-label="add program"
+                                  onClick={() => addStudyProgram(sp._id)}
+                                  color="primary"
+                                >
+                                  <AddIcon fontSize="large" />
+                                </IconButton>
+                              }
+                            >
+                              <ListItemText primary={sp.name} />
+                            </ListItem>
+                          ))}
                       </List>
                     </Box>
                   </Grid>
+
+                  {/* Selected Programs */}
                   <Grid item xs={6}>
-                    <Typography variant="h6">
-                      {t("subject.addedPrograms")}
-                    </Typography>
+                    <Typography variant="h6">{t("subject.addedPrograms")}</Typography>
+
+                    {/* Search Filter */}
+                    <TextField
+                      size="small"
+                      placeholder={t("subject.search")}
+                      value={selectedFilter}
+                      onChange={(e) => setSelectedFilter(e.target.value)}
+                      fullWidth
+                      sx={{ mb: 1 }}
+                    />
+
                     <Box
                       border={selectedPrograms.length ? 1 : 0}
                       borderColor="grey.300"
                       borderRadius={2}
                       p={1}
+                      sx={{ maxHeight: 300, overflowY: "auto" }} 
                     >
                       <List dense>
-                        {selectedPrograms.map((sp) => (
-                          <ListItem
-                            key={sp._id}
-                            secondaryAction={
-                              <IconButton
-                                aria-label="remove program"
-                                onClick={() => removeStudyProgram(sp._id)}
-                                color="error"
-                              >
-                                <RemoveIcon fontSize="large" />
-                              </IconButton>
-                            }
-                          >
-                            <ListItemText primary={sp.name} />
-                          </ListItem>
-                        ))}
+                        {selectedPrograms
+                          .filter((sp) =>
+                            sp.name.toLowerCase().includes(selectedFilter.toLowerCase())
+                          )
+                          .map((sp) => (
+                            <ListItem
+                              key={sp._id}
+                              secondaryAction={
+                                <IconButton
+                                  aria-label="remove program"
+                                  onClick={() => removeStudyProgram(sp._id)}
+                                  color="error"
+                                >
+                                  <RemoveIcon fontSize="large" />
+                                </IconButton>
+                              }
+                            >
+                              <ListItemText primary={sp.name} />
+                            </ListItem>
+                          ))}
                       </List>
                       {errors.studyPrograms && (
                         <FormHelperText error>{t(errors.studyPrograms)}</FormHelperText>
@@ -491,30 +529,23 @@ const SubjectForm = () => {
               {policyData.policyRules.map((rule, idx) => (
                 <Grid item xs={12} key={idx}>
                   <Box display="flex" gap={2} flexWrap="wrap">
-                    <FormControl
-                      required
-                      error={Boolean(errors[`evaluationTypeId_${idx}`])}
-                      sx={{ minWidth: 200 }}
-                    >
-                      <InputLabel>{t("subject.evaluationType")}</InputLabel>
-                      <Select
-                        value={rule.evaluationTypeId}
-                        label={t("subject.evaluationType")}
-                        onChange={(e) =>
-                          handlePolicyRuleChange(idx, "evaluationTypeId", e.target.value)
-                        }
-                      >
-                        {evaluationTypes.map((et) => (
-                          <MenuItem key={et._id} value={et._id}>
-                            {et.name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      {errors[`evaluationTypeId_${idx}`] && (
-                        <FormHelperText>{t(errors[`evaluationTypeId_${idx}`])}</FormHelperText>
+                    <Autocomplete
+                      options={evaluationTypes}
+                      getOptionLabel={(et) => et.name || ""}
+                      value={evaluationTypes.find((et) => et._id === rule.evaluationTypeId) || null}
+                      onChange={(_, v) => handlePolicyRuleChange(idx, "evaluationTypeId", v?._id || "")}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label={t("subject.evaluationType")}
+                          error={Boolean(errors[`evaluationTypeId_${idx}`])}
+                          helperText={errors[`evaluationTypeId_${idx}`] && t(errors[`evaluationTypeId_${idx}`])}
+                          required
+                        />
                       )}
-                    </FormControl>
-
+                      clearOnEscape
+                      sx={{ minWidth: 200 }}
+                    />
                     <TextField
                         type="number"
                         label={t("subject.minPercentage")}

@@ -42,7 +42,6 @@ const AcademicYearForm = () => {
   const [submitSuccess, setSubmitSuccess] = useState("");
   const [successKey, setSuccessKey] = useState("");
 
-  // Fetch data for editing
   useEffect(() => {
     const fetchYear = async () => {
       if (!id || !universityID) return;
@@ -73,7 +72,6 @@ const AcademicYearForm = () => {
     if (isEditing) fetchYear();
   }, [id, isEditing, universityID, navigate]);
 
-  // Manage global success/error messages
   useEffect(() => {
     setSubmitError(errorKey ? t(errorKey) : "");
     setSubmitSuccess(successKey ? t(successKey) : "");
@@ -86,6 +84,8 @@ const AcademicYearForm = () => {
         newErrors.yearLabel = "academicYears.error.yearLabelRequired";
     } else if (formData.yearLabel.trim().length > 50) {
         newErrors.yearLabel = "academicYears.error.yearLabelMax";
+    } else if (formData.yearLabel.trim().length < 3) {
+        newErrors.yearLabel = "academicYears.error.yearLabelLength";
     }
 
     if (!formData.startDate) newErrors.startDate = "academicYears.error.startDateRequired";
@@ -228,6 +228,14 @@ const AcademicYearForm = () => {
                   helperText={errors.startDate && t(errors.startDate)}
                   InputLabelProps={{ shrink: true }}
                   required
+                  sx={{
+                    "& input[type='date']::-webkit-calendar-picker-indicator": {
+                      cursor: "pointer",
+                      opacity: 0.8,
+                      transition: "opacity 0.2s",
+                      "&:hover": { opacity: 1 },
+                    },
+                  }}
                 />
               </Grid>
 
@@ -242,6 +250,14 @@ const AcademicYearForm = () => {
                   helperText={errors.endDate && t(errors.endDate)}
                   InputLabelProps={{ shrink: true }}
                   required
+                  sx={{
+                    "& input[type='date']::-webkit-calendar-picker-indicator": {
+                      cursor: "pointer",
+                      opacity: 0.8,
+                      transition: "opacity 0.2s",
+                      "&:hover": { opacity: 1 },
+                    },
+                  }}
                 />
               </Grid>
 

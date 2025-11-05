@@ -5,10 +5,10 @@ const config = require("../src/config");
 const { User, EmailAccount } = require("../src/models");
 const argon2 = require("argon2");
 const jwt = require("jsonwebtoken");
+const axios = require("axios");
 
-// ----------------------
-// MOCK CLOUDINARY
-// ----------------------
+jest.mock("axios");
+
 jest.mock("cloudinary", () => {
   const uploaderMock = {
     upload: jest.fn().mockResolvedValue({ secure_url: "https://mocked.url/photo.jpg" }),
@@ -23,15 +23,12 @@ jest.mock("cloudinary", () => {
 });
 
 jest.mock("nodemailer", () => {
-  const sendMailMock = jest.fn().mockResolvedValue(true); // simula envío exitoso
+  const sendMailMock = jest.fn().mockResolvedValue(true); 
   return {
     createTransport: jest.fn(() => ({ sendMail: sendMailMock })),
   };
 });
 
-// ----------------------
-// SETUP DB & APP
-// ----------------------
 let mongoServer;
 let app;
 let createGlobalAdmin;
@@ -46,7 +43,6 @@ beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
   config.mongoUri = mongoServer.getUri();
 
-  // Carga app DESPUÉS de los mocks
   const src = require("../src");
   app = src.server;
   createGlobalAdmin = src.createGlobalAdminIfMissing;
@@ -59,9 +55,6 @@ afterAll(async () => {
   await mongoServer.stop();
 });
 
-// ----------------------
-// HELPERS
-// ----------------------
 const createTestUser = async () => {
   const hashedPassword = await argon2.hash("TestPassword123!", config.crypt);
   const testUser = await User.create({
@@ -78,9 +71,6 @@ const createTestUser = async () => {
   return { testUser, emailAccount };
 };
 
-// ----------------------
-// TESTS
-// ----------------------
 describe("Auth & Admin", () => {
   beforeEach(async () => {
     await User.deleteMany({});
@@ -120,6 +110,16 @@ describe("Public Routes (Login / Verify)", () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body).toHaveProperty("token");
+  });
+
+  it("Should reject login with non-existent email", async () => {
+    const res = await request(app).post("/public/login").send({
+      email: "nonexistent@test.com",
+      password: "SomePassword123!"
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.errorKey).toBe("invalidCredentials");
   });
 
   it("Should reject invalid credentials", async () => {
@@ -168,7 +168,7 @@ describe("Password Recovery / Change", () => {
     expect(res.body.success).toBe(true);
 
     const updatedAccount = await EmailAccount.findById(emailAccount._id);
-    expect(updatedAccount.resetPasswordToken).toBeDefined(); // CORREGIDO
+    expect(updatedAccount.resetPasswordToken).toBeDefined();
   });
 
   it("Reset password updates account", async () => {
@@ -190,29 +190,42 @@ describe("Password Recovery / Change", () => {
   });
 
   it("Change password returns 404 for invalid accountId", async () => {
-    const res = await request(app).post("/change-password").send({
+    const res = await request(app).put("/change-password").send({
       accountId: "64e999999999999999999999",
-      password: "NewStrongPass123!"
+      password: "NewStrongPass123!",
+      currentPassword: "SomePass123!",
     });
     expect(res.status).toBe(404);
+    expect(res.body.errorKey).toBe("notFound");
+  });
+
+  it("Change password rejects wrong current password", async () => {
+    const { emailAccount } = await createTestUser();
+    const res = await request(app)
+      .put("/change-password")
+      .send({
+        password: "NewStrongPass123!",
+        currentPassword: "WrongPassword1!",
+        accountId: emailAccount._id,
+      });
+    expect(res.status).toBe(401);
+    expect(res.body.errorKey).toBe("passwordWrong");
   });
 
   it("Change password successfully returns 200", async () => {
-    // Crear una cuenta de prueba
     const { emailAccount } = await createTestUser();
 
-    // Llamar a la ruta de cambio de contraseña
     const res = await request(app)
-      .post("/change-password")
+      .put("/change-password")
       .send({
         password: "NewStrongPass123!",
+        currentPassword: "TestPassword123!",
         accountId: emailAccount._id,
       });
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
 
-    // Verificar que la contraseña se actualizó en la DB
     const updated = await EmailAccount.findById(emailAccount._id);
     const valid = await argon2.verify(updated.password, "NewStrongPass123!", config.crypt);
     expect(valid).toBe(true);
@@ -300,6 +313,22 @@ describe("Accounts CRUD", () => {
     expect(res.body.account).toBeDefined();
   });
 
+  it("Should reject creation if email already exists", async () => {
+    const { testUser } = await createTestUser();
+    await request(app).post("/accounts").send({
+      email: "testuser@test.com",
+      role: "student",
+      userId: testUser._id,
+    });
+    const res = await request(app).post("/accounts").send({
+      email: "testuser@test.com",
+      role: "student",
+      userId: testUser._id,
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.errorKey).toBe("emailExists");
+  });
+
   it("Get accounts", async () => {
     await createTestUser();
     const res = await request(app).get("/accounts");
@@ -315,11 +344,155 @@ describe("Accounts CRUD", () => {
     expect(res.body.account.email).toBe("testuser@test.com");
   });
 
+  it("Should return 404 if account not found", async () => {
+    const res = await request(app).get("/accounts/64e999999999999999999999");
+    expect(res.status).toBe(404);
+    expect(res.body.errorKey).toBe("notFound");
+  });
+
   it("Delete account", async () => {
     const { emailAccount } = await createTestUser();
     const res = await request(app).delete(`/accounts/${emailAccount._id}`);
     expect(res.status).toBe(200);
     const exists = await EmailAccount.findById(emailAccount._id);
     expect(exists).toBeNull();
+  });
+
+  it("Should return 404 when deleting a non-existent account", async () => {
+    const res = await request(app).delete("/accounts/64e999999999999999999999");
+    expect(res.status).toBe(404);
+    expect(res.body.errorKey).toBe("notFound");
+  });
+
+  it("Get accounts by university ID", async () => {
+    const { testUser } = await createTestUser();
+    const universityId = "64e999999999999999999999";
+    await EmailAccount.updateOne({ userId: testUser._id }, { universityId });
+
+    axios.get.mockResolvedValueOnce({
+      data: { _id: universityId, name: "University of Testing" },
+    });
+
+    const res = await request(app).get(`/accounts/by-university/${universityId}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(Array.isArray(res.body.accounts)).toBe(true);
+    expect(res.body.accounts.length).toBe(1);
+
+    const account = res.body.accounts[0];
+    expect(account.university).toEqual({
+      _id: universityId,
+      name: "University of Testing",
+    });
+    expect(account.universityId).toBe(universityId);
+  });
+});
+
+describe("Import users", () => {
+  it("Should import valid users successfully", async () => {
+    axios.get.mockResolvedValueOnce({
+      data: { universities: [{ _id: "64e999999999999999999999", name: "University of Testing" }] }
+    });
+
+    const res = await request(app).post("/users/import").send({
+      user: { role: "global-admin" },
+      rows: [
+        {
+          identityNumber: "A001",
+          name: "Alice",
+          firstSurname: "Doe",
+          secondSurname: "",
+          email: "alice@test.com",
+          role: "student",
+          university: "University of Testing"
+        }
+      ]
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.added).toContain("alice@test.com");
+    expect(res.body.errors.length).toBe(0);
+  });
+
+  it("Should reject empty import", async () => {
+    const res = await request(app).post("/users/import").send({
+      user: { role: "global-admin" },
+      rows: []
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.errorKey).toBe("emptyCSV");
+  });
+
+  it("Should detect duplicated emails in file", async () => {
+    axios.get.mockResolvedValueOnce({ data: { universities: [] } });
+
+    const res = await request(app).post("/users/import").send({
+      user: { role: "global-admin" },
+      rows: [
+        {
+          identityNumber: "A001",
+          name: "Alice",
+          firstSurname: "Doe",
+          email: "dup@test.com",
+          role: "student"
+        },
+        {
+          identityNumber: "A002",
+          name: "Bob",
+          firstSurname: "Doe",
+          email: "dup@test.com",
+          role: "student"
+        }
+      ]
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.errors.some(e => e.errorKey === "accountDuplicatedInFile")).toBe(true);
+  });
+
+  it("Should reject invalid university name", async () => {
+    axios.get.mockResolvedValueOnce({ data: { universities: [] } });
+    
+    const res = await request(app).post("/users/import").send({
+      user: { role: "global-admin" },
+      rows: [
+        {
+          identityNumber: "A001",
+          name: "Alice",
+          firstSurname: "Doe",
+          email: "alice@test.com",
+          role: "student",
+          university: "Nonexistent University"
+        }
+      ]
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.errors[0].errorKey).toBe("invalidUniversity");
+  });
+
+  it("Should prevent non-global admin from creating users in another university", async () => {
+    axios.get.mockResolvedValueOnce({
+      data: { universities: [{ _id: "64e999999999999999999999", name: "Other University" }] }
+    });
+
+    const res = await request(app).post("/users/import").send({
+      user: { role: "admin", universityId: "64e111111111111111111111" },
+      rows: [
+        {
+          identityNumber: "A001",
+          name: "Alice",
+          firstSurname: "Doe",
+          email: "alice@test.com",
+          role: "student",
+          university: "Other University"
+        }
+      ]
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.errors[0].errorKey).toBe("invalidUniversity");
   });
 });

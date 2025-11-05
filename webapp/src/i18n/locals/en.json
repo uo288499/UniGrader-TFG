@@ -1,13 +1,18 @@
 {
   "aria": {
     "openDrawer": "Open navigation drawer",
+    "closeDrawer": "Close navigation drawer",
     "selectLanguage": "Select language",
-    "accessibilityOptions": "Accessibility options"
+    "accessibilityOptions": "Accessibility options",
+    "profile": "Profile"
   },
   "themes": {
     "grayscale": "Gray scale",
     "largeText": "Large text"
   },
+  "line": "line",
+  "sourceCode": "Source Code",
+  "home": "Home",
   "logout": "Logout",
   "navigation": "Navigation",
   "university": "Universities",
@@ -16,7 +21,7 @@
   "enrollmentsNav": "Enrollments",
   "subjects": "Subjects",
   "courses": "Courses",
-  "grades": "Grades",
+  "gradesNav": "Grades",
   "groupsNav": "Groups",
   "reports": "Reports",
   "academicYearNav": "Academic Years",
@@ -34,12 +39,13 @@
     "title": "Login",
     "emailLabel": "Email Address",
     "passwordLabel": "Password",
-    "forgotPassword": "Forgot password?",
+    "forgotPassword": "Forgot or don't have password?",
     "signInButton": "Log In",
     "signingInButton": "Loging In..."
   },
   "error": {
     "invalidCredentials": "Invalid email or password",
+    "passwordWrong": "The current password is incorrect.",
     "invalidToken": "Session expired or invalid token.",
     "validationError": "Validation error. Please check your data.",
     "loginFailed": "Login failed. Please try again.",
@@ -59,7 +65,38 @@
     "courseExists": "A course with this code already exists in the selected academic year.",
     "courseHasGroups": "You cannot delete a course that has associated groups.",
     "enrollmentExists": "The student is already enrolled in this program.",
-    "groupExists": "A group with this name already exists in this course."
+    "groupExists": "A group with this name already exists in this course.",
+    "evaluationItemExists": "An evaluation item with this name and type already exists in this group.",
+    "emptyCSV": "The CSV file is empty or poorly formatted.",
+    "professorNotFound": "The professor does not exist.",
+    "professorAlreadyInThisGroup": "The professor is already in this group.",
+    "studentNotFound": "The student does not exist.",
+    "studentNotEnrolled": "The student is not enrolled to the study program of this course.",
+    "studentAlreadyInGroup": "The student already belongs to another group in the same course.",
+    "studentAlreadyInThisGroup": "The student is already in this group.",
+    "studyProgramNotFound": "The study program does not exist.",
+    "academicYearNotFound": "The academic year does not exist.",
+    "userNotFound": "No user exists with the indicated identity number.",
+    "userAlreadyExists": "A user with that identity number already exists.",
+    "userMissingFields": "Mandatory fields (identityNumber, name, or first surname) are missing to create the user.",
+    "userConflictData": "The provided data does not match an existing user (identityNumber associated with a different name or surnames).",
+    "userDuplicateInFile": "The identity number is duplicated in the CSV file",
+    "invalidRole": "The specified role does not exist.",
+    "invalidUniversity": "The specified university does not exist.",
+    "accountEmailExists": "An account with that email address already exists.",
+    "universityMismatch": "You do not have permission to create accounts at another university.",
+    "globalAdminCreationDenied": "You do not have permission to create Global Admin accounts.",
+    "accountMissingFields": "Mandatory fields (email, role, university) are missing to create the account.",
+    "accountDuplicatedInFile": "The email address is duplicated in the CSV file",
+    "groupNotFound": "The specified group was not found.",
+    "studentNotFoundOrNotInGroup": "The student does not exist or is not part of the selected group.",
+    "studentDuplicatedInFile": "The student appears more than once in the file.",
+    "evaluationTypeNotFound": "The specified evaluation type does not exist.",
+    "evaluationItemNotFound": "The evaluation item does not exist or does not match the type.",
+    "duplicateItemInRow": "An evaluation item appears more than once in the same row.",
+    "invalidGradeValue": "The grade value is invalid. It must be between 0 and 10.",
+    "invalidExtraordinaryGrade": "The extraordinary grade value is invalid. It must be between 0 and 10.",
+    "invalidEmailFormat": "The email format is invalid."
   },
   "forgotPassword": {
     "title": "Reset Password",
@@ -138,6 +175,8 @@
     }
   },
   "users": {
+    "csvHelp": "Format: includes headers. Each row must contain the following fields: 'identityNumber', 'name', 'firstSurname', 'secondSurname', 'email', 'role', 'university'. The 'identityNumber' field is mandatory. If you want to create an account for an existing user, the name and surname fields must match the ones stored in the database or leave them empty. The fields 'email', 'role', and 'university' belong to the account. The university must be specified by its unique name. ';' is the recommended separator, but other valid delimiters (',', tab, '|') are also accepted.",
+    "import": "Import users and accounts (CSV)",
     "create": "CREATE ACCOUNT",
     "edit": "EDIT ACCOUNT",
     "selectExistingUser": "Select Existing User (Optional)",
@@ -272,6 +311,7 @@
     }
   },
   "subject": {
+    "search": "Search study programs",
     "single": "Subject",
     "new": "New Subject",
     "name": "Subject Name",
@@ -314,6 +354,7 @@
     }
   },
   "course": {
+    "maxGradeIfMinNotReached": "Maximum grade if minimum requirements not met",
     "single": "Course",
     "new": "New Course",
     "name": "Course Name",
@@ -351,10 +392,14 @@
       "invalidWeight": "Total weight must be between 0 and 100.",
       "totalWeightNot100": "The sum of total weights must equal 100%.",
       "belowMin": "Total weight is below the minimum for this evaluation type defined in subject.",
-      "aboveMax": "Total weight exceeds the maximum for this evaluation type defined in subject."
+      "aboveMax": "Total weight exceeds the maximum for this evaluation type defined in subject.",
+      "maxGradeIfMinNotReachedRequired": "Maximum grade is required",
+      "maxGradeIfMinNotReachedRange": "Maximum grade must be between 0 and 10"
     }
   },
   "enrollments": {
+    "csvHelp": "Format: includes headers. The file must include the columns 'email', 'studyProgram', and 'academicYear'. 'email' refers to the student's email address, 'studyProgram' to the exact name of the study program (e.g., 'Software Engineering'), and 'academicYear' to the academic year label (e.g., '2025/2026'). ';' is the recommended separator, but other valid delimiters (',', tab, '|') are also accepted.",
+    "import": "Import enrollments (CSV)",
     "new": "New Enrollment",
     "searchPlaceholder": "Type ID, name or surnames, email...",
     "createTitle": "CREATE ENROLLMENT",
@@ -373,6 +418,10 @@
     "confirmDelete": "Are you sure you want to delete this enrollment?"
   },
   "group": {
+    "csvHelpProfessors": "Format: no headers. A single column containing professors' email addresses. ';' is the recommended separator, but other valid delimiters (',', tab, '|') are also accepted.",
+    "csvHelpStudents": "Format: no headers. A single column containing students' email addresses. ';' is the recommended separator, but other valid delimiters (',', tab, '|') are also accepted.",
+    "importProfessors": "Import professors (CSV)",
+    "importStudents": "Import students (CSV)",
     "single": "Group",
     "new": "New Group",
     "name": "Group Name",
@@ -387,6 +436,7 @@
     "selectedProfessors": "Added Professors",
     "availableStudents": "Available Students",
     "selectedStudents": "Added Students",
+    "manageEvaluationItems": "Manage Evaluation Items",
     "success": {
       "created": "Group created successfully.",
       "updated": "Group updated successfully.",
@@ -399,5 +449,96 @@
       "atLeastOneProfessor": "You must assign at least one professor to the group.",
       "atLeastOneStudent": "You must enroll at least one student in the group."  
     }
+  },
+  "evaluationItem": {
+    "manageItems": "Manage Evaluation Items",
+    "systemId": "System ID",
+    "name": "Item Name",
+    "weight": "Weight (%)",
+    "minGrade": "Min Grade",
+    "addItem": "Add Item",
+    "saveChanges": "Save Changes",
+    "hasMinGrade": "Has Minimum Grade?",
+    "success": {
+      "synced": "Evaluation items successfully synced."
+    },
+    "error": {
+      "nameRequired": "The item name is required.",
+      "typeRequired": "The evaluation type is required.",
+      "evaluationSystemNotFound": "No evaluation system was found for this group's course.",
+      "nameTooLong": "Name must be at most 100 characters long.",
+      "weightRequired": "Weight is required.",
+      "weightInvalid": "Weight must be greater than 0 and up to 100.",
+      "minGradeInvalid": "Minimum grade must be between 0 and 10.",
+      "duplicate": "Duplicate name within the same evaluation type.",
+      "totalWeightNot100": "Total weight for this evaluation type must equal 100%."
+    }
+  },
+  "gradesManagement": {
+    "csvHelp": "Format: include headers. The first column must be 'email', and the last column 'extraordinary', the rest of the headers do not mind. Each row should start with the student's email, followed by groups of three columns for each evaluation item: (1) item name, (2) evaluation type it belongs to, and (3) grade. At the end of the row, there would be a final column with the extraordinary final grade. Example: 'student@email.com; Exam 1; Theory; 7.5; Lab 1; Laboratory; 9; 8.25'. The columns for grades can be empty. ';' is the recommended separator, but other valid delimiters (',', tab, '|') are also accepted.",
+    "importCSV": "Import grades (CSV)",
+    "title": "Grades Management",
+    "selectCourse": "Select Course",
+    "selectGroup": "Select Group",
+    "unnamedGroup": "Unnamed Group",
+    "selectStudent": "Select Student",
+    "searchStudent": "Search student...",
+    "extraordinaryGrade": "Extraordinary Grade",
+    "extraordinaryFinalGrade": "Extraordinary Final Grade",
+    "finalGrade": "Final Grade",
+    "delete": "Delete",
+    "save": "Save",
+    "saveGrades": "Save Grades",
+    "loadingData": "Loading grades data...",
+    "successSavedGrades": "Grades and ordinary final grade saved successfully",
+    "successSavedExtraordinaryGrade": "Extraordinary grade saved",
+    "successDeletedExtraordinaryGrade": "Extraordinary grade deleted",
+    "gradesRangeError": "All grades must be between 0 and 10",
+    "weight": "Item's Weight",
+    "unknownType": "Unknown Type",
+    "minGrade": "Min Grade",
+    "confirmDeleteExtraordinary": "Are you sure you want to delete this extraordinary grade?",
+    "finalOrdinaryGrade": "Final Ordinary Grade",
+    "failedMinGradeWarning": "Some items did not meet their minimum grade requirement, maximum grade will be {{max}}",
+    "success": {
+      "gradesSaved": "Grades saved successfully",
+      "extraordinarySaved": "Extraordinary grade saved",
+      "extraordinaryDeleted": "Extraordinary grade deleted"
+    }, 
+    "error": {
+      "invalidGradesRange": "All grades must be between 0 and 10"
+    }
+  },
+  "welcome": "Welcome, {{name}}",
+  "homePage": {
+    "global-admin": "As a global administrator, you can manage any university and user.",
+    "admin": "As an administrator, you can manage users and resources of your university.",
+    "professor": "As a professor, you can manage your groups, their evaluation items, and assign grades to your students.",
+    "student": "As a student, you can check your grades and view your professors and classmates."
+  },
+  "profile": {
+    "title": "My Profile",
+    "personalInfo": "Personal Information",
+    "accountInfo": "Account Information",
+    "editableInfo": "Editable Information",
+    "changePhoto": "Change Photo",
+    "changePassword": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "saveChanges": "Save Changes",
+    "updated": "Profile updated successfully",
+    "errorCurrentPasswordRequired": "Current password is required to change password"
+  },
+  "grades": {
+    "title": "My Grades",
+    "evaluationPeriod": "Evaluation Period",
+    "finalGrade": "Final Grade",
+    "status": "Status",
+    "Ordinary": "Ordinary",
+    "Extraordinary": "Extraordinary",
+    "Passed": "Passed",
+    "Failed": "Failed",
+    "noEvaluationSystem": "No evaluation system found"
   }
 }

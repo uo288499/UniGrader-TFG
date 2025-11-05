@@ -1,13 +1,15 @@
 // @ts-check
 const { checkExact } = require("express-validator");
-const { Group, Course } = require("../models");
+const { Group, Course, Enrollment } = require("../models");
 const validation = require("../validation");
+const axios = require("axios");
+
+const AUTH_URL = process.env.AUTH_URL || "http://localhost:8001";
 
 /**
  * @param {import("express").Router} app
  */
 module.exports = (app) => {
-  // Crear un group
   app.post(
     "/groups",
     ...validation.setup(
@@ -24,7 +26,6 @@ module.exports = (app) => {
       try {
         const newGroupData = req.body;
 
-        // Validar course existe
         const course = await Course.findOne({
           _id: newGroupData.courseId,
           universityId: newGroupData.user.universityId,
@@ -33,7 +34,6 @@ module.exports = (app) => {
           return res.status(404).json({ success: false, errorKey: "courseNotFound" });
         }
 
-        // Validar que no exista un grupo con mismo nombre en el mismo course
         const existingGroup = await Group.findOne({
           name: newGroupData.name,
           courseId: newGroupData.courseId,
@@ -53,7 +53,6 @@ module.exports = (app) => {
     }
   );
 
-  // Obtener groups por university
   app.get("/groups/by-university/:id", async (req, res) => {
     try {
       const universityId = req.params.id;
@@ -74,7 +73,44 @@ module.exports = (app) => {
     }
   });
 
-  // Obtener un group
+  app.get("/groups/by-professor/:id", async (req, res) => {
+    try {
+      const professorId = req.params.id;
+
+      const groups = await Group.find({
+          professors: professorId 
+      })
+        .populate('courseId') 
+        .lean(); 
+
+      // Filtrar groups sin course 
+      const filtered = groups.filter((g) => g.courseId);
+
+      res.json({ success: true, groups: filtered });
+    } catch (err) {
+      res.status(500).json({ success: false, errorKey: "serverError" });
+    }
+  });
+
+  app.get("/groups/by-student/:id", async (req, res) => {
+    try {
+      const studentId = req.params.id;
+
+      const groups = await Group.find({
+          students: studentId 
+      })
+        .populate('courseId') 
+        .lean(); 
+
+      // Filtrar groups sin course 
+      const filtered = groups.filter((g) => g.courseId);
+
+      res.json({ success: true, groups: filtered });
+    } catch (err) {
+      res.status(500).json({ success: false, errorKey: "serverError" });
+    }
+  });
+
   app.get("/groups/:id", async (req, res) => {
     try {
       const { id } = req.params;
@@ -88,7 +124,6 @@ module.exports = (app) => {
     }
   });
 
-  // Actualizar un group
   app.put(
     "/groups/:id",
     ...validation.setup(
@@ -109,7 +144,6 @@ module.exports = (app) => {
         const { id } = req.params;
         const updates = req.body;
 
-        // Evitar duplicados
         if (updates.name && updates.courseId) {
           const existingGroup = await Group.findOne({
             name: updates.name,
@@ -139,7 +173,6 @@ module.exports = (app) => {
     }
   );
 
-  // Eliminar un group
   app.delete("/groups/:id", async (req, res) => {
     try {
       const { id } = req.params;
@@ -151,6 +184,151 @@ module.exports = (app) => {
     } catch (err) {
       console.error("Error deleting group:", err);
       res.status(500).json({ success: false, errorKey: "serverError" });
+    }
+  });
+
+  app.get("/groups/students-in-course/:courseId", async (req, res) => {
+    try {
+      const { courseId } = req.params;
+
+      const groups = await Group.find({ courseId }).lean();
+
+      const assignedStudentIds = [
+        ...new Set(groups.flatMap(g => g.students.map(s => s.toString())))
+      ];
+
+      res.json({ success: true, students: assignedStudentIds });
+    } catch (err) {
+      console.error("Error fetching students in course:", err);
+      res.status(500).json({ success: false, errorKey: "serverError" });
+    }
+  });
+
+  app.post("/groups/import-professors/:universityId", async (req, res) => {
+    const { universityId } = req.params;
+    const { emails } = req.body;
+
+    try {
+      if (!emails?.length) {
+        return res.status(400).json({
+          success: false,
+          errorKey: "emptyCSV",
+        });
+      }
+
+      const { data } = await axios.get(`${AUTH_URL}/accounts/by-university/${universityId}`);
+      const accounts = data.accounts || [];
+
+      const professors = accounts.filter((/** @type {{ role: string; }} */ a) => a.role === "professor");
+
+      const added = [];
+      const errors = [];
+
+      for (const [index, email] of emails.entries()) {
+        const found = professors.find((/** @type {{ email: any; }} */ p) => p.email === email);
+
+        if (!found) {
+          errors.push({
+            line: index + 1,
+            email,
+            errorKey: "professorNotFound"
+          });
+          continue;
+        }
+
+        added.push(found._id);
+      }
+
+      return res.json({ success: true, added, errors });
+    } catch (err) {
+      console.error("Error importing professors:", err);
+      return res.status(500).json({
+        success: false,
+        errorKey: "serverError",
+      });
+    }
+  });
+
+  app.post("/groups/import-students/:courseId", async (req, res) => {
+    const { courseId } = req.params;
+    const { emails, groupId } = req.body;
+
+    try {
+      if (!emails?.length) {
+        return res.status(400).json({
+          success: false,
+          errorKey: "emptyCSV",
+        });
+      }
+
+      const course = await Course.findById(courseId).lean();
+      if (!course) {
+        return res.status(404).json({
+          success: false,
+          errorKey: "notFound",
+        });
+      }
+
+      const { data } = await axios.get(`${AUTH_URL}/accounts/by-university/${course.universityId}`);
+      const accounts = data.accounts || [];
+
+      const students = accounts.filter((/** @type {{ role: string; }} */ a) => a.role === "student");
+
+      const groupFilter = groupId ? { courseId, _id: { $ne: groupId } } : { courseId };
+      const groups = await Group.find(groupFilter).lean();
+      const alreadyAssigned = new Set(groups.flatMap(g => g.students.map(s => s.toString())));
+
+      const added = [];
+      const errors = [];
+
+      for (const [index, email] of emails.entries()) {
+        const found = students.find((/** @type {{ email: any; }} */ s) => s.email === email);
+
+        if (!found) {
+          errors.push({
+            line: index + 1,
+            email,
+            errorKey: "studentNotFound",
+          });
+          continue;
+        }
+
+        // Comprobar si está matriculado en el mismo studyProgram y academicYear del curso
+        const enrollment = await Enrollment.findOne({
+          accountId: found._id,
+          studyProgramId: course.studyProgramId,
+          academicYearId: course.academicYearId,
+        }).lean();
+
+        if (!enrollment) {
+          errors.push({
+            line: index + 1,
+            email,
+            errorKey: "studentNotEnrolled",
+          });
+          continue;
+        }
+
+        // Comprobar si ya está en otro grupo de esta asignatura
+        if (alreadyAssigned.has(found._id.toString())) {
+          errors.push({
+            line: index + 1,
+            email,
+            errorKey: "studentAlreadyInGroup",
+          });
+          continue;
+        }
+
+        added.push(found._id);
+      }
+
+      return res.json({ success: true, added, errors });
+    } catch (err) {
+      console.error("Error importing students:", err);
+      return res.status(500).json({
+        success: false,
+        errorKey: "serverError",
+      });
     }
   });
 };

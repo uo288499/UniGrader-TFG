@@ -231,59 +231,63 @@ const EnrollmentForm = () => {
               
               {/* Study Program */}
               <Grid item xs={12}>
-                <FormControl
-                  fullWidth
-                  required
-                  error={!!errors.studyProgramId}
-                  disabled={isEditing}
-                >
-                  <InputLabel>{t("studyPrograms.program")}</InputLabel>
-                  <Select
-                    value={formData.studyProgramId}
-                    label={t("studyPrograms.program")}
-                    onChange={handleChange("studyProgramId")}
-                    disabled={isEditing}
-                  >
-                    {studyPrograms.map((program) => (
-                      <MenuItem key={program._id} value={program._id}>
-                        {program.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {errors.studyProgramId && (
-                    <FormHelperText>{t(errors.studyProgramId)}</FormHelperText>
+                <Autocomplete
+                  options={studyPrograms}
+                  getOptionLabel={(option) => option.name || ""}
+                  value={studyPrograms.find((p) => p._id === formData.studyProgramId) || null}
+                  onChange={(event, newValue) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      studyProgramId: newValue?._id || "",
+                    }));
+                    if (errors.studyProgramId) {
+                      setErrors((prev) => ({ ...prev, studyProgramId: "" }));
+                    }
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={t("studyPrograms.program")}
+                      required
+                      error={!!errors.studyProgramId}
+                      helperText={errors.studyProgramId ? t(errors.studyProgramId) : ""}
+                      disabled={isEditing}
+                    />
                   )}
-                </FormControl>
+                  disabled={isEditing}
+                />
               </Grid>
 
               {/* Academic Year */}
               <Grid item xs={12}>
-                <FormControl
-                  fullWidth
-                  required
-                  error={!!errors.academicYearId}
-                  disabled={isEditing}
-                >
-                  <InputLabel>{t("academicYears.single")}</InputLabel>
-                  <Select
-                    value={formData.academicYearId}
-                    label={t("academicYears.single")}
-                    onChange={handleChange("academicYearId")}
-                    disabled={isEditing}
-                  >
-                    {academicYears.map((year) => (
-                      <MenuItem key={year._id} value={year._id}>
-                        {year.yearLabel}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {errors.academicYearId && (
-                    <FormHelperText>{t(errors.academicYearId)}</FormHelperText>
+                <Autocomplete
+                  options={academicYears}
+                  getOptionLabel={(option) => option.yearLabel || ""}
+                  value={academicYears.find((y) => y._id === formData.academicYearId) || null}
+                  onChange={(event, newValue) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      academicYearId: newValue?._id || "",
+                    }));
+                    if (errors.academicYearId) {
+                      setErrors((prev) => ({ ...prev, academicYearId: "" }));
+                    }
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={t("academicYears.single")}
+                      required
+                      error={!!errors.academicYearId}
+                      helperText={errors.academicYearId ? t(errors.academicYearId) : ""}
+                      disabled={isEditing}
+                    />
                   )}
-                </FormControl>
+                  disabled={isEditing}
+                />
               </Grid>
 
-              {/* Student Account Autocomplete */}
+              {/* Student Account */}
               <Grid item xs={12}>
                 <Autocomplete
                   options={students}

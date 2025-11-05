@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
@@ -9,6 +9,9 @@ import {
   TextField,
   Button,
   CircularProgress,
+  Avatar,
+  Autocomplete,
+  Stack,
   FormControl,
   InputLabel,
   Select,
@@ -22,13 +25,17 @@ import {
   CardContent,
   Alert,
   FormHelperText,
+  Tooltip,
 } from "@mui/material";
 import {
   Add as AddIcon,
   Remove as RemoveIcon,
   ArrowBack as ArrowBackIcon,
+  Person as PersonIcon,
+   HelpOutline as HelpOutlineIcon,
 } from "@mui/icons-material";
 import { SessionContext } from "../../SessionContext";
+import Papa from "papaparse";
 
 const GATEWAY_URL = process.env.GATEWAY_URL || "http://localhost:8000";
 
@@ -37,7 +44,7 @@ const GroupForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = Boolean(id);
-  const { universityID } = useContext(SessionContext);
+  const { universityID, role, accountID } = useContext(SessionContext);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -61,37 +68,45 @@ const GroupForm = () => {
   const [submitSuccess, setSubmitSuccess] = useState("");
   const [errorKey, setErrorKey] = useState("");
   const [successKey, setSuccessKey] = useState("");
+  const [csvErrors, setCsvErrors] = useState([]);
+
+  const profCsvInputRef = useRef(null);
+  const studentCsvInputRef = useRef(null);
+
+  const [availableProfFilter, setAvailableProfFilter] = useState("");
+  const [selectedProfFilter, setSelectedProfFilter] = useState("");
+  const [availableStudentFilter, setAvailableStudentFilter] = useState("");
+  const [selectedStudentFilter, setSelectedStudentFilter] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        // Fetch courses
         const { data: coursesData } = await axios.get(
           `${GATEWAY_URL}/academic/courses/by-university/${universityID}`
         );
         setCourses(coursesData?.courses ?? []);
 
-        // Fetch enrollments
         const { data: enrollmentsData } = await axios.get(
           `${GATEWAY_URL}/academic/enrollments/by-university/${universityID}`
         );
         setAllEnrollments(enrollmentsData?.enrollments ?? []);
 
-        // Fetch accounts
         const { data: accounts } = await axios.get(
           `${GATEWAY_URL}/authVerify/accounts/by-university/${universityID}`
         );
 
-        // Set professors list
         setProfessors(
           accounts.accounts
-            .filter((a) => a.role === "professor")
-            .map((p) => ({ id: p._id, label: `${p.userId?.name ?? ""} ${p.userId?.firstSurname ?? ""} ${p.userId?.secondSurname ?? ""} (${p.email})` }))
+            .filter(a => a.role === "professor")
+            .map(p => ({
+              id: p._id,
+              userId: p.userId,  
+              email: p.email,
+            }))
         );
 
-        // Students list initially empty; will populate after course selection
         setStudents([]);
 
         if (isEditing) {
@@ -100,6 +115,14 @@ const GroupForm = () => {
           );
           const g = groupData.group;
 
+          if (role === "professor") {
+            const isAuthorized = g.professors?.includes(accountID);
+            if (!isAuthorized) {
+              navigate("/not-found");
+              return;
+            }
+          }
+
           setForm({
             name: g.name ?? "",
             courseId: g.courseId?._id ?? "",
@@ -107,19 +130,7 @@ const GroupForm = () => {
             professors: g.professors ?? [],
           });
 
-          // Populate students based on course of the group, igual que el useEffect final
-          if (g.courseId?._id) {
-            const course = coursesData.courses.find(c => c._id === g.courseId._id);
-            if (course) {
-              const availableStudents = enrollmentsData.enrollments
-                .filter(e => e.studyProgramId._id === course.studyProgramId._id)
-                .map(e => ({
-                  id: e.accountId,
-                  label: `${e.account?.userId?.name ?? ""} ${e.account?.userId?.firstSurname ?? ""} ${e.account?.userId?.secondSurname ?? ""} (${e.account?.email})`
-                }));
-              setStudents(availableStudents);
-            }
-          }
+          
         }
       } catch (err) {
         const key = "error." + (err.response?.data?.errorKey || "genericError");
@@ -135,21 +146,39 @@ const GroupForm = () => {
   useEffect(() => {
     if (!form.courseId) return;
 
-    const course = courses.find(c => c._id === form.courseId);
-    if (!course) return;
+    const fetchStudentsData = async () => {
+      const course = courses.find(c => c._id === form.courseId);
+      if (!course) return;
 
-    const filteredStudents = allEnrollments
-      .filter(e => e.studyProgramId._id === course.studyProgramId._id)
-      .map(e => ({
-        id: e.accountId,
-        label: `${e.account?.userId?.name ?? ""} ${e.account?.userId?.firstSurname ?? ""} ${e.account?.userId?.secondSurname ?? ""} (${e.account?.email})`
-      }));
+      const filteredStudents = allEnrollments
+        .filter(e => e.studyProgramId._id === course.studyProgramId._id)
+        .map(e => ({
+          id: e.accountId,
+          userId: e.account.userId,
+          email: e.account.email,
+        }));
 
-    setForm(prev => ({ ...prev, students: [] }));
-    setStudents(filteredStudents);
+      try {
+        const { data } = await axios.get(`${GATEWAY_URL}/academic/groups/students-in-course/${form.courseId}`);
+        const assignedIds = data.students || [];
+
+        const allowedIds = isEditing ? form.students : [];
+
+        const available = filteredStudents.filter(s => 
+          !assignedIds.includes(s.id) || allowedIds.includes(s.id)
+        );
+
+        setForm(prev => ({ ...prev, students: [] }));
+        setStudents(available);
+      } catch (err) {
+        console.error("Error filtering students:", err);
+        setStudents(filteredStudents); 
+      }
+    }
+
+    fetchStudentsData();
   }, [form.courseId, allEnrollments, courses]);
 
-  // Translate global error/success messages dynamically
   useEffect(() => {
     setSubmitError(errorKey ? t(errorKey) : "");
     setSubmitSuccess(successKey ? t(successKey) : "");
@@ -216,6 +245,67 @@ const GroupForm = () => {
     }));
   };
 
+  const handleImportCSV = (type, id, groupId = null) => async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: false,
+      skipEmptyLines: true,
+      delimiter: ";", 
+      delimitersToGuess: [',', '\t', ';', '|'],
+      complete: async (results) => {
+        const emails = results.data.flat().map(s => s.trim()).filter(Boolean);
+
+        if (!emails.length) {
+          setErrorKey("error.emptyCSV");
+            if (type === "professor")
+              profCsvInputRef.current.value = "";
+            if (type === "student")
+              studentCsvInputRef.current.value = "";
+          return;
+        }
+
+        try {
+          setLoading(true);
+          const url = `${GATEWAY_URL}/academic/groups/import-${type}/${id}`;
+          const { data } = await axios.post(url, { emails, groupId });
+
+          if (data.added?.length) {
+            setForm(prev => ({
+              ...prev,
+              [type]: [
+                ...new Set([...prev[type], ...data.added])
+              ],
+            }));
+          }
+
+          if (data.errors?.length) {
+            setCsvErrors(data.errors.map(e => ({
+              line: e.line,
+              email: e.email,
+              key: e.errorKey,
+            })));
+          } else {
+            setCsvErrors([]);
+          }
+
+          setErrorKey(null);
+        } catch (err) {
+          console.error("Import CSV error:", err);
+          const key = "error." + (err.response?.data?.errorKey || "genericError");
+          setErrorKey(key);
+        } finally {
+          setLoading(false);
+          if (type === "professor")
+            profCsvInputRef.current.value = "";
+          if (type === "student")
+            studentCsvInputRef.current.value = "";
+        }
+      },
+    });
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setErrorKey("");
@@ -276,7 +366,6 @@ const GroupForm = () => {
     );
   }
 
-  // Students linked to selected course
   const availableStudents = students.filter(
     (s) => !form.students.includes(s.id)
   );
@@ -311,9 +400,30 @@ const GroupForm = () => {
           <form onSubmit={handleSubmit}>
             <Grid container spacing={3}>
               <Grid item xs={12}>
-                <Typography variant="h5" fontWeight="bold" gutterBottom>
-                  {t("group.basicInfo")}
-                </Typography>
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  width="100%"
+                >
+                  <Typography variant="h5" fontWeight="bold" gutterBottom>
+                    {t("group.basicInfo")}
+                  </Typography>
+
+                  {isEditing && role === "professor" && (
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      onClick={() => navigate(`/groups/${id}/evaluation-items`)}
+                      sx={{
+                        textTransform: "none",
+                        alignSelf: "flex-start", 
+                      }}
+                    >
+                      {t("group.manageEvaluationItems")}
+                    </Button>
+                  )}
+                </Box>
               </Grid>
 
               <Grid item xs={12}>
@@ -327,125 +437,306 @@ const GroupForm = () => {
                   helperText={errors.name && t(`${errors.name}`)}
                   required
                   autoComplete="off"
+                  disabled={role === "professor"}
                 />
               </Grid>
 
               <Grid item xs={12}>
-                <FormControl fullWidth required error={Boolean(errors.courseId)}>
-                  <InputLabel>{t("group.course")}</InputLabel>
-                  <Select
-                    value={form.courseId}
-                    label={t("group.course")}
-                    onChange={handleInputChange("courseId")}
-                    disabled={isEditing}
-                  >
-                    {courses.map((c) => (
-                      <MenuItem key={c._id} value={c._id}>
-                        {c.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {errors.courseId && (
-                    <FormHelperText>{t(`${errors.courseId}`)}</FormHelperText>
+                <Autocomplete
+                  options={courses}
+                  getOptionLabel={(c) => c.name + " - " + c.academicYearId.yearLabel}
+                  value={courses.find(c => c._id === form.courseId) || null}
+                  onChange={(_, v) => handleInputChange("courseId")({ target: { value: v?._id || "" } })}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={t("group.course")}
+                      error={Boolean(errors.courseId)}
+                      helperText={errors.courseId && t(`${errors.courseId}`)}
+                      required
+                    />
                   )}
-                </FormControl>
+                  disabled={isEditing || role === "professor"}
+                  isOptionEqualToValue={(option, value) => option._id === value._id}
+                  disableClearable
+                />
               </Grid>
 
-              {/* Professors */}
-              <Grid item xs={12}>
-                <Typography variant="h5" fontWeight="bold" mb={2}>{t("group.professors")}</Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
-                    <Typography variant="h6">{t("group.availableProfessors")}</Typography>
-                    <Box border={availableProfessors.length ? 1 : 0} borderColor="grey.300" borderRadius={2} p={1}>
-                      <List dense>
-                        {availableProfessors.map((p) => (
-                          <ListItem
-                            key={p.id}
-                            secondaryAction={
-                              <IconButton aria-label="add professor" onClick={() => addProfessor(p.id)} color="primary">
-                                <AddIcon />
-                              </IconButton>
-                            }
-                          >
-                            <ListItemText primary={p.label} />
-                          </ListItem>
-                        ))}
-                      </List>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="h6">{t("group.selectedProfessors")}</Typography>
-                    <Box border={selectedProfessors.length ? 1 : 0} borderColor="grey.300" borderRadius={2} p={1}>
-                      <List dense>
-                        {selectedProfessors.map((p) => (
-                          <ListItem
-                            key={p.id}
-                            secondaryAction={
-                              <IconButton aria-label="remove professor" onClick={() => removeProfessor(p.id)} color="error">
-                                <RemoveIcon />
-                              </IconButton>
-                            }
-                          >
-                            <ListItemText primary={p.label} />
-                          </ListItem>
-                        ))}
-                      </List>
-                      {errors.professors && (
-                        <FormHelperText error>{t(`${errors.professors}`)}</FormHelperText>
+              {csvErrors.length > 0 && (
+                <Stack spacing={1} sx={{ mt: 2, ml: 3, width: "100%" }}>
+                  {csvErrors.map((e, idx) => (
+                    <Alert
+                      key={idx}
+                      severity="warning"
+                      onClose={() => setCsvErrors(prev => prev.filter((_, i) => i !== idx))}
+                      sx={{
+                        width: "100%",
+                        borderRadius: 2,
+                        alignItems: "center",
+                        "& .MuiAlert-message": {
+                          width: "100%",
+                        },
+                      }}
+                    >
+                      {e.line ? (
+                        <>
+                          {t("error." + e.key)} → <strong>{e.email}</strong> ({t("line")} {e.line})
+                        </>
+                      ) : (
+                        <>
+                          {t("error." + e.key)} → <strong>{e.email}</strong>
+                        </>
                       )}
+                    </Alert>
+                  ))}
+                </Stack>
+              )}
+
+              {/* Professors Dual List */}
+              {role !== "professor" && (
+                <Grid item xs={12}>
+                  <Typography variant="h5" fontWeight="bold" mb={2}>{t("group.professors")}</Typography>
+                  <Box mb={2} display="flex" gap={2}>
+                    <Box mb={2} display="flex" gap={1} alignItems="center">
+                      <Button variant="outlined" component="label">
+                        {t("group.importProfessors")}
+                        <input
+                          key={Date.now()}
+                          type="file"
+                          accept=".csv"
+                          hidden
+                          ref={profCsvInputRef}
+                          onChange={handleImportCSV("professors", universityID)}
+                        />
+                      </Button>
+
+                      <Tooltip
+                        title={t("group.csvHelpProfessors")}
+                        arrow
+                        placement="right"
+                      >
+                        <IconButton color="info" size="small">
+                          <HelpOutlineIcon />
+                        </IconButton>
+                      </Tooltip>
                     </Box>
+                  </Box>
+                  <Grid container spacing={2}>
+                    {/* Available Professors */}
+                    <Grid item xs={6}>
+                      <Typography variant="h6">{t("group.availableProfessors")}</Typography>
+                      <TextField
+                        size="small"
+                        placeholder={t("enrollments.searchPlaceholder")}
+                        fullWidth
+                        onChange={(e) => setAvailableProfFilter(e.target.value)}
+                        sx={{ mb: 1 }}
+                      />
+                      <Box border={availableProfessors.length ? 1 : 0} borderColor="grey.300" borderRadius={2} p={1} maxHeight={300} overflow="auto">
+                        <List dense>
+                          {availableProfessors
+                            .filter(p =>
+                              `${p.userId.identityNumber} ${p.userId.name} ${p.userId.firstSurname} ${p.userId.secondSurname || ""} ${p.email}`
+                                .toLowerCase()
+                                .includes(availableProfFilter.toLowerCase())
+                            )
+                            .map((p) => (
+                              <ListItem
+                                key={p.id}
+                                secondaryAction={
+                                  <IconButton data-testid={`add-professor-${p.id}`} onClick={() => addProfessor(p.id)} color="primary">
+                                    <AddIcon />
+                                  </IconButton>
+                                }
+                              >
+                                {p.userId.photoUrl ? (
+                                  <Avatar src={p.userId.photoUrl} sx={{ width: 24, height: 24, mr: 1 }} />
+                                ) : (
+                                  <Avatar sx={{ width: 24, height: 24, mr: 1 }}><PersonIcon fontSize="small" /></Avatar>
+                                )}
+                                <Box>
+                                  <Typography variant="body2">
+                                    {p.userId.name} {p.userId.firstSurname} {p.userId.secondSurname || ""}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {p.userId.identityNumber} {p.email}
+                                  </Typography>
+                                </Box>
+                              </ListItem>
+                            ))}
+                        </List>
+                      </Box>
+                    </Grid>
+
+                    {/* Selected Professors */}
+                    <Grid item xs={6}>
+                      <Typography variant="h6">{t("group.selectedProfessors")}</Typography>
+                      <TextField
+                        size="small"
+                        placeholder={t("enrollments.searchPlaceholder")}
+                        fullWidth
+                        onChange={(e) => setSelectedProfFilter(e.target.value)}
+                        sx={{ mb: 1 }}
+                      />
+                      <Box border={selectedProfessors.length ? 1 : 0} borderColor="grey.300" borderRadius={2} p={1} maxHeight={300} overflow="auto">
+                        <List dense>
+                          {selectedProfessors
+                            .filter(p =>
+                              `${p.userId.identityNumber} ${p.userId.name} ${p.userId.firstSurname} ${p.userId.secondSurname || ""} ${p.email}`
+                                .toLowerCase()
+                                .includes(selectedProfFilter.toLowerCase())
+                            )
+                            .map((p) => (
+                              <ListItem
+                                key={p.id}
+                                secondaryAction={
+                                  <IconButton data-testid={`remove-professor-${p.id}`} onClick={() => removeProfessor(p.id)} color="error">
+                                    <RemoveIcon />
+                                  </IconButton>
+                                }
+                              >
+                                {p.userId.photoUrl ? (
+                                  <Avatar src={p.userId.photoUrl} sx={{ width: 24, height: 24, mr: 1 }} />
+                                ) : (
+                                  <Avatar sx={{ width: 24, height: 24, mr: 1 }}><PersonIcon fontSize="small" /></Avatar>
+                                )}
+                                <Box>
+                                  <Typography variant="body2">
+                                    {p.userId.name} {p.userId.firstSurname} {p.userId.secondSurname || ""}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {p.userId.identityNumber} {p.email}
+                                  </Typography>
+                                </Box>
+                              </ListItem>
+                            ))}
+                        </List>
+                        {errors.professors && <FormHelperText error>{t(`${errors.professors}`)}</FormHelperText>}
+                      </Box>
+                    </Grid>
                   </Grid>
                 </Grid>
-              </Grid>
+              )}
 
-              {/* Students */}
+              {/* Students Dual List */}
               <Grid item xs={12}>
                 <Typography variant="h5" fontWeight="bold" mb={2}>{t("group.students")}</Typography>
+                <Box mb={2} display="flex" gap={2}>
+                  <Box mb={2} display="flex" gap={1} alignItems="center">
+                    <Button variant="outlined" component="label" disabled={!form.courseId}>
+                      {t("group.importStudents")}
+                      <input
+                        key={Date.now()}
+                        type="file"
+                        accept=".csv"
+                        hidden
+                        ref={studentCsvInputRef}
+                        onChange={handleImportCSV("students", form.courseId, id ?? null)}
+                      />
+                    </Button>
+
+                    <Tooltip
+                      title={t("group.csvHelpStudents")}
+                      arrow
+                      placement="right"
+                    >
+                      <IconButton color="info" size="small">
+                        <HelpOutlineIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </Box>
                 <Grid container spacing={2}>
+                  {/* Available Students */}
                   <Grid item xs={6}>
                     <Typography variant="h6">{t("group.availableStudents")}</Typography>
-                    <Box border={availableStudents.length ? 1 : 0} borderColor="grey.300" borderRadius={2} p={1}>
+                    <TextField
+                      size="small"
+                      placeholder={t("enrollments.searchPlaceholder")}
+                      fullWidth
+                      onChange={(e) => setAvailableStudentFilter(e.target.value)}
+                      sx={{ mb: 1 }}
+                    />
+                    <Box border={availableStudents.length ? 1 : 0} borderColor="grey.300" borderRadius={2} p={1} maxHeight={300} overflow="auto">
                       <List dense>
-                        {availableStudents.map((s) => (
-                          <ListItem
-                            key={s.id}
-                            secondaryAction={
-                              <IconButton aria-label="add student" onClick={() => addStudent(s.id)} color="primary">
-                                <AddIcon />
-                              </IconButton>
-                            }
-                          >
-                            <ListItemText
-                              primary={s.label}
-                            />
-                          </ListItem>
-                        ))}
+                        {availableStudents
+                          .filter(s =>
+                            `${s.userId.identityNumber} ${s.userId.name} ${s.userId.firstSurname} ${s.userId.secondSurname || ""} ${s.email}`
+                              .toLowerCase()
+                              .includes(availableStudentFilter.toLowerCase())
+                          )
+                          .map((s) => (
+                            <ListItem
+                              key={s.id}
+                              secondaryAction={
+                                <IconButton data-testid={`add-student-${s.id}`} onClick={() => addStudent(s.id)} color="primary">
+                                  <AddIcon />
+                                </IconButton>
+                              }
+                            >
+                              {s.userId.photoUrl ? (
+                                <Avatar src={s.userId.photoUrl} sx={{ width: 24, height: 24, mr: 1 }} />
+                              ) : (
+                                <Avatar sx={{ width: 24, height: 24, mr: 1 }}><PersonIcon fontSize="small" /></Avatar>
+                              )}
+                              <Box>
+                                <Typography variant="body2">
+                                  {s.userId.name} {s.userId.firstSurname} {s.userId.secondSurname || ""}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {s.userId.identityNumber} {s.email}
+                                </Typography>
+                              </Box>
+                            </ListItem>
+                          ))}
                       </List>
                     </Box>
                   </Grid>
+
+                  {/* Selected Students */}
                   <Grid item xs={6}>
                     <Typography variant="h6">{t("group.selectedStudents")}</Typography>
-                    <Box border={selectedStudents.length ? 1 : 0} borderColor="grey.300" borderRadius={2} p={1}>
+                    <TextField
+                      size="small"
+                      placeholder={t("enrollments.searchPlaceholder")}
+                      fullWidth
+                      onChange={(e) => setSelectedStudentFilter(e.target.value)}
+                      sx={{ mb: 1 }}
+                    />
+                    <Box border={selectedStudents.length ? 1 : 0} borderColor="grey.300" borderRadius={2} p={1} maxHeight={300} overflow="auto">
                       <List dense>
-                        {selectedStudents.map((s) => (
-                          <ListItem
-                            key={s.id}
-                            secondaryAction={
-                              <IconButton aria-label="remove student" onClick={() => removeStudent(s.id)} color="error">
-                                <RemoveIcon />
-                              </IconButton>
-                            }
-                          >
-                            <ListItemText
-                              primary={s.label}
-                            />
-                          </ListItem>
-                        ))}
+                        {selectedStudents
+                          .filter(s =>
+                            `${s.userId.identityNumber} ${s.userId.name} ${s.userId.firstSurname} ${s.userId.secondSurname || ""} ${s.email}`
+                              .toLowerCase()
+                              .includes(selectedStudentFilter.toLowerCase())
+                          )
+                          .map((s) => (
+                            <ListItem
+                              key={s.id}
+                              secondaryAction={
+                                <IconButton data-testid={`remove-student-${s.id}`} onClick={() => removeStudent(s.id)} color="error">
+                                  <RemoveIcon />
+                                </IconButton>
+                              }
+                            >
+                              {s.userId.photoUrl ? (
+                                <Avatar src={s.userId.photoUrl} sx={{ width: 24, height: 24, mr: 1 }} />
+                              ) : (
+                                <Avatar sx={{ width: 24, height: 24, mr: 1 }}><PersonIcon fontSize="small" /></Avatar>
+                              )}
+                              <Box>
+                                <Typography variant="body2">
+                                  {s.userId.name} {s.userId.firstSurname} {s.userId.secondSurname || ""}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {s.userId.identityNumber} {s.email}
+                                </Typography>
+                              </Box>
+                            </ListItem>
+                          ))}
                       </List>
-                      {errors.students && (
-                        <FormHelperText error>{t(`${errors.students}`)}</FormHelperText>
-                      )}
+                      {errors.students && <FormHelperText error>{t(`${errors.students}`)}</FormHelperText>}
                     </Box>
                   </Grid>
                 </Grid>

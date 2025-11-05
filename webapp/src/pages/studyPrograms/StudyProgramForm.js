@@ -5,6 +5,7 @@ import {
   Container,
   Typography,
   TextField,
+  Autocomplete,
   Button,
   Card,
   CardContent,
@@ -59,7 +60,6 @@ const StudyProgramForm = () => {
   const [submitSuccess, setSubmitSuccess] = useState("");
   const [successKey, setSuccessKey] = useState("");
 
-  // Fetch data
   useEffect(() => {
     const fetchProgram = async () => {
       if (!id || !universityID) return; 
@@ -91,7 +91,6 @@ const StudyProgramForm = () => {
     if (isEditing) fetchProgram();
   }, [id, isEditing, universityID]);
 
-  // Manage global success/error messages
   useEffect(() => {
     if (errorKey) {
       setSubmitError(t(errorKey));
@@ -223,7 +222,6 @@ const StudyProgramForm = () => {
         </Typography>
       </Box>
 
-      {/* Mensajes de éxito/error dinámicos */}
       {successKey && (
         <Alert severity="success" sx={{ mb: 3 }}>
           {submitSuccess}
@@ -260,24 +258,26 @@ const StudyProgramForm = () => {
               </Grid>
 
               <Grid item xs={12}>
-                <FormControl fullWidth required error={Boolean(errors.type)}>
-                  <InputLabel>{t("studyPrograms.type")}</InputLabel>
-                  <Select
-                    label={t("studyPrograms.type")}
-                    name="type"
-                    value={formData.type}
-                    onChange={handleInputChange("type")}
-                  >
-                    {programTypes.map((type) => (
-                      <MenuItem key={type} value={type}>
-                        {t(`studyPrograms.types.${type}`)}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {errors.type && (
-                    <FormHelperText>{t(errors.type)}</FormHelperText>
+                <Autocomplete
+                  fullWidth
+                  options={programTypes}
+                  getOptionLabel={(option) => t(`studyPrograms.types.${option}`)}
+                  value={formData.type || null}
+                  onChange={(e, value) => {
+                    setFormData((prev) => ({ ...prev, type: value || "" }));
+                    if (errors.type) setErrors((prev) => ({ ...prev, type: "" }));
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={t("studyPrograms.type")}
+                      required
+                      error={Boolean(errors.type)}
+                      helperText={errors.type && t(errors.type)}
+                    />
                   )}
-                </FormControl>
+                  disableClearable
+                />
               </Grid>
 
               <Grid item xs={12}>

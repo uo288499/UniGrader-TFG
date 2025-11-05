@@ -1,17 +1,15 @@
-import { render, screen, waitFor, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, cleanup, within } from "@testing-library/react";
 import AcademicYears from "../pages/academicYears/AcademicYears";
 import axios from "axios";
 import { BrowserRouter } from "react-router";
 import { SessionContext } from "../SessionContext";
 
-// Mock i18n
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key) => key,
   }),
 }));
 
-// Mock navigate
 const mockNavigate = jest.fn();
 jest.mock("react-router", () => ({
   ...jest.requireActual("react-router"),
@@ -20,7 +18,6 @@ jest.mock("react-router", () => ({
 
 jest.mock("axios");
 
-// Utilidad de render con sesión universitaria válida
 const renderWithProviders = (ui, { universityID = "u123" } = {}) => {
   return render(
     <BrowserRouter>
@@ -32,7 +29,6 @@ const renderWithProviders = (ui, { universityID = "u123" } = {}) => {
 };
 
 describe("AcademicYears Page", () => {
-  // Silenciamos errores para evitar "Cannot log after tests are done"
   beforeAll(() => {
     jest.spyOn(console, "error").mockImplementation(() => {});
   });
@@ -186,5 +182,36 @@ describe("AcademicYears Page", () => {
 
     fireEvent.click(screen.getByLabelText("Go to next page"));
     expect(screen.getByText("Year 5")).toBeInTheDocument();
+  });
+
+  test("changes rows per page and resets page", async () => {
+    const years = Array.from({ length: 10 }, (_, i) => ({
+      _id: `y${i}`,
+      yearLabel: `Year ${i}`,
+      startDate: "2023-09-01",
+      endDate: "2024-06-30",
+    }));
+    axios.get.mockResolvedValueOnce({ data: { years } });
+
+    renderWithProviders(<AcademicYears />);
+    await waitFor(() => expect(screen.getByText("Year 0")).toBeInTheDocument());
+
+    const pagination = screen.getByTestId("rows-per-page");
+    const selectTrigger = within(pagination).getByRole("combobox");
+
+    fireEvent.mouseDown(selectTrigger);
+
+    const option = await screen.findByRole("option", { name: "10" });
+    fireEvent.click(option);
+
+    expect(selectTrigger).toHaveTextContent("10");
+    await waitFor(() => expect(screen.getByText("Year 7")).toBeInTheDocument());
+  });
+
+  test("does not fetch when universityID is missing", async () => {
+    renderWithProviders(<AcademicYears />, { universityID: null });
+    await waitFor(() => {
+      expect(axios.get).not.toHaveBeenCalled();
+    });
   });
 });

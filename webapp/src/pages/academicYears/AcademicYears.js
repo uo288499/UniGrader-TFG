@@ -40,7 +40,6 @@ const AcademicYears = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
-  // Fetch data: Academic Years for the sessionUniversity
   useEffect(() => {
     const fetchYears = async () => {
       if (!universityID) return;
@@ -58,7 +57,6 @@ const AcademicYears = () => {
     fetchYears();
   }, [universityID]);
 
-  // Filtered Academic Years
   const filteredYears = useMemo(() => {
     return years.filter((y) =>
       (y.yearLabel || "").toLowerCase().includes(filters.yearLabel.toLowerCase())
@@ -169,6 +167,7 @@ const AcademicYears = () => {
 
         {/* Pagination */}
         <TablePagination
+          data-testid="rows-per-page"
           component="div"
           count={filteredYears.length}
           page={page}

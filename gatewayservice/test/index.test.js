@@ -46,10 +46,8 @@ beforeAll(() => {
     res.destroy();
   });
 
-  // levantar mock server
   mockServer = app.listen(9999);
 
-  // parchear config para que el gateway apunte al mock server
   config.urls.authVerify = "http://localhost:9999";
   config.urls.auth = "http://localhost:9999/public";
   config.urls.academic = "http://localhost:9999/academic";
@@ -58,7 +56,6 @@ beforeAll(() => {
   config.urls.audit = "http://localhost:9999/audit";
   config.auth.url = "http://localhost:9999/verify";
 
-  // arrancar gateway real
   server = require("../src");
 });
 
@@ -77,7 +74,7 @@ describe("Gateway Service (with mock server)", () => {
   test("Should proxy request to academic service", async () => {
     const res = await request(server)
       .get("/academic/test?foo=bar")
-      .set("Authorization", "Bearer valid"); // <--- token required
+      .set("Authorization", "Bearer valid");
     expect(res.status).toBe(200);
     expect(res.body.service).toBe("academic");
     expect(res.body.query.foo).toBe("bar");
@@ -111,7 +108,7 @@ describe("Gateway Service (with mock server)", () => {
       statuses.map((s) =>
         request(server)
           .get(`/eval/status/${s}`)
-          .set("Authorization", "Bearer valid") // <--- token required
+          .set("Authorization", "Bearer valid")
       )
     );
     results.forEach((res, i) => {
@@ -124,10 +121,16 @@ describe("Gateway Service (with mock server)", () => {
     config.urls.eval = "http://localhost:1111"; // puerto inválido
     const res = await request(server)
       .get("/eval/test")
-      .set("Authorization", "Bearer valid"); // <--- token required
+      .set("Authorization", "Bearer valid");
     expect([500, 504]).toContain(res.status);
 
     // restaurar mock
     config.urls.eval = "http://localhost:9999/eval";
+  });
+
+  test("Should reject requests without Authorization header", async () => {
+    const res = await request(server).get("/academic/test");
+    expect(res.status).toBe(401);
+    expect(res.body.errorKey).toBe("invalidToken");
   });
 });

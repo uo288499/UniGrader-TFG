@@ -63,7 +63,7 @@ describe("GroupForm Page", () => {
     ReactRouter.useParams.mockReturnValue({});
 
     mockAxios.onGet(`${GATEWAY_URL}/academic/courses/by-university/uni1`).reply(200, {
-      courses: [{ _id: "c1", name: "Math", studyProgramId: { _id: "sp1" } }]
+      courses: [{ _id: "c1", name: "Math", studyProgramId: { _id: "sp1" }, academicYearId: { yearLabel: "2025/26" } }]
     });
     mockAxios.onGet(`${GATEWAY_URL}/academic/enrollments/by-university/uni1`).reply(200, {
       enrollments: [{
@@ -78,13 +78,11 @@ describe("GroupForm Page", () => {
 
     renderWithContext(<GroupForm />);
 
-    // --- Course Select (MUI) ---
     const courseSelect = (await screen.findAllByRole("combobox"))[0];
     fireEvent.mouseDown(courseSelect);
     const listbox = await screen.findByRole("listbox");
-    fireEvent.click(within(listbox).getByText("Math"));
+    fireEvent.click(within(listbox).getByText("Math - 2025/26"));
 
-    // Esperar a que se renderice el profesor
     await waitFor(() => expect(screen.getByText(/Jane Smith/i)).toBeInTheDocument());
   });
 
@@ -92,7 +90,7 @@ describe("GroupForm Page", () => {
     ReactRouter.useParams.mockReturnValue({});
 
     mockAxios.onGet(`${GATEWAY_URL}/academic/courses/by-university/uni1`).reply(200, {
-      courses: [{ _id: "c1", name: "Math", studyProgramId: { _id: "sp1" } }]
+      courses: [{ _id: "c1", name: "Math", studyProgramId: { _id: "sp1" }, academicYearId: { yearLabel: "2025/26" } }]
     });
     mockAxios.onGet(`${GATEWAY_URL}/academic/enrollments/by-university/uni1`).reply(200, {
       enrollments: [{
@@ -110,15 +108,16 @@ describe("GroupForm Page", () => {
 
     fireEvent.change(screen.getByLabelText(/group.name/i), { target: { value: "Group A" } });
 
-    // --- Course Select (MUI) ---
     const courseSelect = (await screen.findAllByRole("combobox"))[0];
     fireEvent.mouseDown(courseSelect);
     const listbox = await screen.findByRole("listbox");
-    fireEvent.click(within(listbox).getByText("Math"));
+    fireEvent.click(within(listbox).getByText("Math - 2025/26"));
 
-    // --- Add professors/students ---
-    fireEvent.click(screen.getByRole("button", { name: /add professor/i }));
-    fireEvent.click(screen.getByRole("button", { name: /add student/i }));
+    const addProfButton = await screen.findByTestId("add-professor-p1");
+    fireEvent.click(addProfButton);
+
+    const addStudentButton = await screen.findByTestId("add-student-s1");
+    fireEvent.click(addStudentButton);
 
     const submitButton = screen.getByRole("button", { name: /create/i });
     await act(async () => fireEvent.click(submitButton));
@@ -132,7 +131,7 @@ describe("GroupForm Page", () => {
     ReactRouter.useParams.mockReturnValue({});
 
     mockAxios.onGet(`${GATEWAY_URL}/academic/courses/by-university/uni1`).reply(200, {
-      courses: [{ _id: "c1", name: "Math", studyProgramId: { _id: "sp1" } }]
+      courses: [{ _id: "c1", name: "Math", studyProgramId: { _id: "sp1" }, academicYearId: { yearLabel: "2025/26" } }]
     });
     mockAxios.onGet(`${GATEWAY_URL}/academic/enrollments/by-university/uni1`).reply(200, {
       enrollments: [{
@@ -150,15 +149,16 @@ describe("GroupForm Page", () => {
 
     fireEvent.change(screen.getByLabelText(/group.name/i), { target: { value: "Group A" } });
 
-    // --- Course Select (MUI) ---
     const courseSelect = (await screen.findAllByRole("combobox"))[0];
     fireEvent.mouseDown(courseSelect);
     const listbox = await screen.findByRole("listbox");
-    fireEvent.click(within(listbox).getByText("Math"));
+    fireEvent.click(within(listbox).getByText("Math - 2025/26"));
 
-    // --- Add professors/students ---
-    fireEvent.click(screen.getByRole("button", { name: /add professor/i }));
-    fireEvent.click(screen.getByRole("button", { name: /add student/i }));
+    const addProfButton = await screen.findByTestId("add-professor-p1");
+    fireEvent.click(addProfButton);
+
+    const addStudentButton = await screen.findByTestId("add-student-s1");
+    fireEvent.click(addStudentButton);
 
     const submitButton = screen.getByRole("button", { name: /create/i });
     await act(async () => fireEvent.click(submitButton));
@@ -166,5 +166,92 @@ describe("GroupForm Page", () => {
     await waitFor(() => {
       expect(screen.getByText(/error.serverError/i)).toBeInTheDocument();
     });
+  });
+
+  it("handles empty CSV import gracefully", async () => {
+    ReactRouter.useParams.mockReturnValue({});
+
+    mockAxios.onGet(`${GATEWAY_URL}/academic/courses/by-university/uni1`).reply(200, {
+      courses: [{ _id: "c1", name: "Math", studyProgramId: { _id: "sp1" }, academicYearId: { yearLabel: "2025/26" } }]
+    });
+    mockAxios.onGet(`${GATEWAY_URL}/academic/enrollments/by-university/uni1`).reply(200, {
+      enrollments: [{
+        accountId: "s1",
+        studyProgramId: { _id: "sp1" },
+        account: { userId: { name: "John", firstSurname: "Doe", secondSurname: "" }, email: "john@example.com" }
+      }]
+    });
+    mockAxios.onGet(`${GATEWAY_URL}/authVerify/accounts/by-university/uni1`).reply(200, {
+      accounts: [{ _id: "p1", role: "professor", userId: { name: "Jane", firstSurname: "Smith", secondSurname: "" }, email: "jane@example.com" }]
+    });
+    
+    renderWithContext(<GroupForm />);
+
+    const file = new File([""], "empty.csv", { type: "text/csv" });
+
+    const input = screen.getByLabelText(/importProfessors/i, { selector: 'input' });
+    await act(async () => {
+      fireEvent.change(input, { target: { files: [file] } });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/error.emptyCSV/i)).toBeInTheDocument();
+    });
+  });
+
+  it("validates group name length", async () => {
+    ReactRouter.useParams.mockReturnValue({});
+
+    mockAxios.onGet(`${GATEWAY_URL}/academic/courses/by-university/uni1`).reply(200, {
+      courses: [{ _id: "c1", name: "Math", studyProgramId: { _id: "sp1" }, academicYearId: { yearLabel: "2025/26" } }]
+    });
+    mockAxios.onGet(`${GATEWAY_URL}/academic/enrollments/by-university/uni1`).reply(200, {
+      enrollments: [{
+        accountId: "s1",
+        studyProgramId: { _id: "sp1" },
+        account: { userId: { name: "John", firstSurname: "Doe", secondSurname: "" }, email: "john@example.com" }
+      }]
+    });
+    mockAxios.onGet(`${GATEWAY_URL}/authVerify/accounts/by-university/uni1`).reply(200, {
+      accounts: [{ _id: "p1", role: "professor", userId: { name: "Jane", firstSurname: "Smith", secondSurname: "" }, email: "jane@example.com" }]
+    });
+
+    renderWithContext(<GroupForm />);
+    fireEvent.change(screen.getByLabelText(/group.name/i), { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: /create/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/group.error.nameRequired/i)).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText(/group.name/i), { target: { value: "A".repeat(51) } });
+    fireEvent.click(screen.getByRole("button", { name: /create/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/group.error.nameLength/i)).toBeInTheDocument();
+    });
+  });
+
+  it("navigates back on cancel", async () => {
+    ReactRouter.useParams.mockReturnValue({});
+
+    mockAxios.onGet(`${GATEWAY_URL}/academic/courses/by-university/uni1`).reply(200, {
+      courses: [{ _id: "c1", name: "Math", studyProgramId: { _id: "sp1" }, academicYearId: { yearLabel: "2025/26" } }]
+    });
+    mockAxios.onGet(`${GATEWAY_URL}/academic/enrollments/by-university/uni1`).reply(200, {
+      enrollments: [{
+        accountId: "s1",
+        studyProgramId: { _id: "sp1" },
+        account: { userId: { name: "John", firstSurname: "Doe", secondSurname: "" }, email: "john@example.com" }
+      }]
+    });
+    mockAxios.onGet(`${GATEWAY_URL}/authVerify/accounts/by-university/uni1`).reply(200, {
+      accounts: [{ _id: "p1", role: "professor", userId: { name: "Jane", firstSurname: "Smith", secondSurname: "" }, email: "jane@example.com" }]
+    });
+
+    renderWithContext(<GroupForm />);
+    const cancelButton = screen.getByRole("button", { name: /common.cancel/i });
+    fireEvent.click(cancelButton);
+    expect(mockNavigate).toHaveBeenCalledWith("/groups");
   });
 });

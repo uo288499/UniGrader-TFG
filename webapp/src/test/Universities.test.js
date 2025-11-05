@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor, fireEvent, userEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, userEvent, within } from "@testing-library/react";
 import axios from "axios";
 import MockAdapter from "axios-mock-adapter";
 import { BrowserRouter } from "react-router";
@@ -11,7 +11,6 @@ jest.mock("react-router", () => ({
   useNavigate: () => mockNavigate,
 }));
 
-// Mock i18n
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key) => key,
@@ -57,7 +56,6 @@ describe("Universities Page - Full Coverage", () => {
 
     setup();
 
-    // Loader
     expect(screen.getByRole("progressbar")).toBeInTheDocument();
 
     await waitFor(() => {
@@ -139,10 +137,8 @@ describe("Universities Page - Full Coverage", () => {
 
     setup();
 
-    // Espera a que se renderice la primera universidad
     await waitFor(() => screen.getByText("Uni 0"));
 
-    // Pasa a la segunda página usando el botón de "next"
     const nextPageButton = screen.getByLabelText("Go to next page");
     fireEvent.click(nextPageButton);
 
@@ -174,5 +170,53 @@ describe("Universities Page - Full Coverage", () => {
       expect(screen.queryByText("Uni One")).not.toBeInTheDocument();
       expect(screen.queryByText("Uni Two")).not.toBeInTheDocument();
     });
+  });
+
+  test("handles pagination change", async () => {
+    const bigList = Array.from({ length: 12 }, (_, i) => ({
+      _id: `u${i}`,
+      name: `Uni ${i}`,
+      address: `Address ${i}`,
+      contactEmail: `contact${i}@uni.com`,
+      contactPhone: `100${i}`,
+    }));
+    mockAxios.onGet(`${GATEWAY_URL}/academic/universities`).reply(200, { universities: bigList });
+
+    setup();
+
+    await waitFor(() => expect(screen.getByText("Uni 0")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByLabelText("Go to next page"));
+    await waitFor(() => expect(screen.getByText("Uni 5")).toBeInTheDocument());
+  });
+
+  it("changes rows per page and resets page", async () => {
+    const manyUniversities = Array.from({ length: 12 }, (_, i) => ({
+      _id: `u${i}`,
+      name: `Uni ${i}`,
+      address: `Address ${i}`,
+      contactEmail: `contact${i}@uni.com`,
+      contactPhone: `100${i}`,
+    }));
+
+    mockAxios
+      .onGet(`${GATEWAY_URL}/academic/universities`)
+      .reply(200, { universities: manyUniversities });
+
+    setup();
+
+    await waitFor(() => expect(screen.getByText("Uni 0")).toBeInTheDocument());
+    expect(screen.queryByText("Uni 7")).not.toBeInTheDocument();
+
+    const pagination = screen.getByTestId("rows-per-page");
+    const selectTrigger = screen.getByRole("combobox");
+
+    fireEvent.mouseDown(selectTrigger);
+    const option = await screen.findByRole("option", { name: "10" });
+    fireEvent.click(option);
+
+    expect(selectTrigger).toHaveTextContent("10");
+
+    await waitFor(() => expect(screen.getByText("Uni 7")).toBeInTheDocument());
   });
 });

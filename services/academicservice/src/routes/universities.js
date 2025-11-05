@@ -46,23 +46,21 @@ module.exports = (app) => {
         const universityExists = await University.findOne({name: newUniversityData.name});
         if (universityExists) return res.status(400).json({ success: false, errorKey: "universityExists" });
 
-        // Subir y obtener URL del smallLogo (usando Base64)
+        // Subir y obtener URL del smallLogo
         if (smallLogoBase64) {
-          // Cloudinary puede subir cadenas Base64 directamente
           const result = await cloudinary.uploader.upload(smallLogoBase64, { folder });
           newUniversityData.smallLogoUrl = result.secure_url;
-          // Es importante eliminar la cadena Base64 del cuerpo antes de guardar en la DB
+
           delete newUniversityData.smallLogoBase64; 
         }
         
-        // Subir y obtener URL del largeLogo (usando Base64)
+        // Subir y obtener URL del largeLogo
         if (largeLogoBase64) {
           const result = await cloudinary.uploader.upload(largeLogoBase64, { folder });
           newUniversityData.largeLogoUrl = result.secure_url;
           delete newUniversityData.largeLogoBase64; 
         }
 
-        // Guardar el registro con las URLs en la DB
         const university = new University(newUniversityData);
         await university.save();
         res.status(201).json({ success: true, university });
@@ -151,7 +149,7 @@ module.exports = (app) => {
           // Se borra la imagen explícitamente desde el frontend 
           else if (newUrlValue === "" && currentUrl && publicId) {
             await cloudinary.uploader.destroy(publicId);
-            updates[currentUrlKey] = null; // Guardar null en la DB
+            updates[currentUrlKey] = null; 
           } 
           // No se envía Base64 ni se modifica la URL en el body
           else if (!newUrlValue) {
@@ -163,7 +161,6 @@ module.exports = (app) => {
           delete updates[base64Key];
          };
 
-        // Aplicar la lógica a ambos logos
         await handleLogoUpdate(updates.smallLogoBase64, 'smallLogoUrl', 'smallLogoBase64');
         await handleLogoUpdate(updates.largeLogoBase64, 'largeLogoUrl', 'largeLogoBase64');
 

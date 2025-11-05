@@ -10,6 +10,7 @@ import {
   CardContent,
   Box,
   Alert,
+  Autocomplete,
   CircularProgress,
   Grid,
   FormControl,
@@ -39,6 +40,7 @@ const CourseForm = () => {
     subjectId: "",
     academicYearId: "",
     studyProgramId: "",
+    maxGradeIfMinNotReached: "",
   });
 
   const [evaluationSystem, setEvaluationSystem] = useState({
@@ -60,7 +62,6 @@ const CourseForm = () => {
   const [submitSuccess, setSubmitSuccess] = useState("");
   const [successKey, setSuccessKey] = useState("");
 
-  // Fetch inicial
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -90,6 +91,7 @@ const CourseForm = () => {
             subjectId: c.subjectId._id || "",
             academicYearId: c.academicYearId._id || "",
             studyProgramId: c.studyProgramId._id || "",
+            maxGradeIfMinNotReached: c.maxGrade ?? "",
           });
 
           if (c.subjectId) {
@@ -139,20 +141,17 @@ const CourseForm = () => {
     if (universityID) fetchData();
   }, [id, isEditing, universityID]);
 
-  // Global error/success translation
   useEffect(() => {
     setSubmitError(errorKey ? t(errorKey) : "");
     setSubmitSuccess(successKey ? t(successKey) : "");
   }, [errorKey, successKey, t]);
 
-  // Subject change
   const handleSubjectChange = (event) => {
     const value = event.target.value;
     setFormData((prev) => ({ ...prev, subjectId: value, studyProgramId: "" }));
     if (errors.subjectId) setErrors((prev) => ({ ...prev, subjectId: "" }));
   };
 
-  // Filter study programs when subjectId changes
   useEffect(() => {
     if (!formData.subjectId) {
       setFilteredPrograms([]);
@@ -169,7 +168,6 @@ const CourseForm = () => {
     }
   }, [formData.subjectId, subjects, studyPrograms]);
 
-  // Fetch evaluation policy when subjectId changes
   useEffect(() => {
     const fetchPolicyForSubject = async () => {
       if (!formData.subjectId) return;
@@ -208,7 +206,6 @@ const CourseForm = () => {
     fetchPolicyForSubject();
   }, [formData.subjectId, subjects]);
 
-  // Handlers
   const handleInputChange = (field) => (event) => {
     const value = event.target.value;
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -224,7 +221,6 @@ const CourseForm = () => {
     }
   };
 
-  // Validation
   const validateForm = () => {
     const newErrors = {};
 
@@ -240,6 +236,20 @@ const CourseForm = () => {
       newErrors.code = "course.error.codeRequired";
     } else if (formData.code.trim().length < 2 || formData.code.trim().length > 20) {
       newErrors.code = "course.error.codeLength";
+    }
+
+    if (
+      formData.maxGradeIfMinNotReached === "" ||
+      formData.maxGradeIfMinNotReached === null ||
+      formData.maxGradeIfMinNotReached === undefined
+    ) {
+      newErrors.maxGradeIfMinNotReached = "course.error.maxGradeIfMinNotReachedRequired";
+    } else if (
+      isNaN(formData.maxGradeIfMinNotReached) ||
+      formData.maxGradeIfMinNotReached < 0 ||
+      formData.maxGradeIfMinNotReached > 10
+    ) {
+      newErrors.maxGradeIfMinNotReached = "course.error.maxGradeIfMinNotReachedRange";
     }
 
     if (!formData.subjectId) newErrors.subjectId = "course.error.subjectRequired";
@@ -269,7 +279,6 @@ const CourseForm = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Submit
   const handleSubmit = async (event) => {
     event.preventDefault();
     setErrorKey("");
@@ -285,6 +294,7 @@ const CourseForm = () => {
         subjectId: formData.subjectId,
         academicYearId: formData.academicYearId,
         studyProgramId: formData.studyProgramId,
+        maxGrade: formData.maxGradeIfMinNotReached,
         evaluationGroups: evaluationSystem.evaluationGroups,
       };
 
@@ -312,7 +322,6 @@ const CourseForm = () => {
     }
   };
 
-  // Delete
   const handleDelete = async () => {
     if (!window.confirm(t("course.confirmDelete"))) return;
 
@@ -385,74 +394,90 @@ const CourseForm = () => {
                   required
                 />
               </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t("course.maxGradeIfMinNotReached")}
+                  type="number"
+                  value={formData.maxGradeIfMinNotReached}
+                  inputProps={{ min: 0, max: 10, step: 0.1 }}
+                  onChange={handleInputChange("maxGradeIfMinNotReached")}
+                  error={Boolean(errors.maxGradeIfMinNotReached)}
+                  helperText={errors.maxGradeIfMinNotReached && t(errors.maxGradeIfMinNotReached)}
+                  required
+                />
+              </Grid>
 
               {/* Subject */}
               <Grid item xs={12} sm={6}>
-                <FormControl fullWidth error={Boolean(errors.subjectId)}>
-                  <InputLabel>{t("course.subject")}</InputLabel>
-                  <Select
-                    value={formData.subjectId}
-                    label={t("course.subject")}
-                    onChange={handleSubjectChange}
-                    disabled={isEditing}
-                  >
-                    {subjects.map((s) => (
-                      <MenuItem key={s._id} value={s._id}>
-                        {s.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {errors.subjectId && (
-                    <FormHelperText>{t(errors.subjectId)}</FormHelperText>
+                <Autocomplete
+                  options={subjects}
+                  getOptionLabel={(s) => s.name || ""}
+                  value={subjects.find((s) => s._id === formData.subjectId) || null}
+                  onChange={(_, v) => {
+                    setFormData((prev) => ({ ...prev, subjectId: v._id, studyProgramId: "" }));
+                    if (errors.subjectId) setErrors((prev) => ({ ...prev, subjectId: "" }));
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={t("course.subject")}
+                      error={Boolean(errors.subjectId)}
+                      helperText={errors.subjectId ? t(errors.subjectId) : ""}
+                      fullWidth
+                    />
                   )}
-                </FormControl>
+                  disabled={isEditing}
+                  disableClearable
+                />
               </Grid>
 
               {/* Academic Year */}
               <Grid item xs={12} sm={6}>
-                <FormControl fullWidth error={Boolean(errors.academicYearId)}>
-                  <InputLabel>{t("course.academicYear")}</InputLabel>
-                  <Select
-                    value={formData.academicYearId}
-                    label={t("course.academicYear")}
-                    onChange={handleInputChange("academicYearId")}
-                    disabled={isEditing}
-                  >
-                    {academicYears.map((y) => (
-                      <MenuItem key={y._id} value={y._id}>
-                        {y.yearLabel}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {errors.academicYearId && (
-                    <FormHelperText>{t(errors.academicYearId)}</FormHelperText>
+                <Autocomplete
+                  options={academicYears}
+                  getOptionLabel={(y) => y.yearLabel || ""}
+                  value={academicYears.find((y) => y._id === formData.academicYearId) || null}
+                  onChange={(_, v) => {
+                    setFormData((prev) => ({ ...prev, academicYearId: v?._id || "" }));
+                    if (errors.academicYearId) setErrors((prev) => ({ ...prev, academicYearId: "" }));
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={t("course.academicYear")}
+                      error={Boolean(errors.academicYearId)}
+                      helperText={errors.academicYearId ? t(errors.academicYearId) : ""}
+                      fullWidth
+                    />
                   )}
-                </FormControl>
+                  disabled={isEditing}
+                  clearOnEscape
+                />
               </Grid>
 
               {/* Study Program */}
-              <Grid item xs={12}>
-                <FormControl
-                  fullWidth
-                  error={Boolean(errors.studyProgramId)}
-                  disabled={!formData.subjectId || isEditing}
-                >
-                  <InputLabel>{t("course.studyProgram")}</InputLabel>
-                  <Select
-                    value={formData.studyProgramId}
-                    label={t("course.studyProgram")}
-                    onChange={handleInputChange("studyProgramId")}
-                  >
-                    {filteredPrograms.map((sp) => (
-                      <MenuItem key={sp._id} value={sp._id}>
-                        {sp.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {errors.studyProgramId && (
-                    <FormHelperText>{t(errors.studyProgramId)}</FormHelperText>
+              <Grid item xs={12} sm={6}>
+                <Autocomplete
+                  options={filteredPrograms}
+                  getOptionLabel={(sp) => sp.name || ""}
+                  value={filteredPrograms.find((sp) => sp._id === formData.studyProgramId) || null}
+                  onChange={(_, v) => {
+                    setFormData((prev) => ({ ...prev, studyProgramId: v?._id || "" }));
+                    if (errors.studyProgramId) setErrors((prev) => ({ ...prev, studyProgramId: "" }));
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={t("course.studyProgram")}
+                      error={Boolean(errors.studyProgramId)}
+                      helperText={errors.studyProgramId ? t(errors.studyProgramId) : ""}
+                      fullWidth
+                    />
                   )}
-                </FormControl>
+                  disabled={!formData.subjectId || isEditing}
+                  clearOnEscape
+                />
               </Grid>
 
               {/* Evaluation System */}
@@ -475,14 +500,13 @@ const CourseForm = () => {
                       {/* Evaluation Type */}
                       <FormControl sx={{ width: 220 }}>
                         <InputLabel>{t("subject.evaluationType")}</InputLabel>
-                        <Select value={eg.evaluationTypeId} disabled>
+                        <Select value={eg.evaluationTypeId} label={t("subject.evaluationType")} disabled>
                           <MenuItem value={eg.evaluationTypeId}>
                             {et ? et.name : ""}
                           </MenuItem>
                         </Select>
                       </FormControl>
-
-                      {/* Total Weight with min–max in label */}
+                      {/* Total Weight */}
                       <TextField
                         label={`${t("course.totalWeight")} (${eg.minPercentage}–${eg.maxPercentage}%)`}
                         type="number"

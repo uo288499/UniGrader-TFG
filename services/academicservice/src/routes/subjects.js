@@ -10,7 +10,6 @@ const EVAL_URL = process.env.EVAL_URL || "http://localhost:8003";
  * @param {import("express").Router} app
  */
 module.exports = (app) => {
-  // Crear subject y su policy
   app.post(
     "/subjects",
     ...validation.setup(
@@ -32,7 +31,6 @@ module.exports = (app) => {
           delete newSubject.studyProgramIds; 
         }
 
-        // Comprobar código único por universidad
         const existing = await Subject.findOne({
           code: newSubject.code,
           universityId: newSubject.universityId,
@@ -69,7 +67,6 @@ module.exports = (app) => {
     }
   );
 
-  // Obtener subjects por universidad
   app.get("/subjects/by-university/:id", async (req, res) => {
     try {
       const universityId = req.params.id;
@@ -84,7 +81,6 @@ module.exports = (app) => {
     }
   });
 
-  // Obtener un subject + policy
   app.get("/subjects/:id", async (req, res) => {
     try {
       const { id } = req.params;
@@ -99,7 +95,6 @@ module.exports = (app) => {
           .json({ success: false, errorKey: "notFound" });
       }
 
-      // Buscar policy en evaluation-service
       let policy = null;
       try {
         const response = await axios.get(
@@ -117,7 +112,6 @@ module.exports = (app) => {
     }
   });
 
-  // Actualizar subject y policy
   app.put(
     "/subjects/:id",
     ...validation.setup(
@@ -179,7 +173,6 @@ module.exports = (app) => {
     }
   );
 
-  // Eliminar subject y su policy
   app.delete("/subjects/:id", async (req, res) => {
     try {
       const { id } = req.params;
@@ -191,7 +184,7 @@ module.exports = (app) => {
           .json({ success: false, errorKey: "notFound" });
       }
 
-      // Eliminar también la policy asociada
+      // Eliminar la policy asociada
       try {
         await axios.delete(`${EVAL_URL}/evaluation-policies/${deleted.evaluationPolicyId}`);
       } catch (err) {

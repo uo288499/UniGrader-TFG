@@ -7,7 +7,6 @@ const evaluationSystemSchema = new mongoose.Schema({
   evaluationGroups: [{
     evaluationTypeId: { type: mongoose.Schema.Types.ObjectId, ref: 'EvaluationType', required: true },
     totalWeight: { type: Number, required: true },
-    itemIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'EvaluationItem' }]
   }]
 }, { timestamps: true });
 

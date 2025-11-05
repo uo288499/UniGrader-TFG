@@ -1,10 +1,12 @@
-import { useState, useEffect, useContext, useMemo } from "react";
+import { useState, useEffect, useContext, useMemo, useRef } from "react";
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
+import Papa from "papaparse";
 import {
   Container,
   Paper,
+  Autocomplete,
   TextField,
   Button,
   Typography,
@@ -17,13 +19,13 @@ import {
   Box,
   Avatar,
   CircularProgress,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   TablePagination,
+  Stack,
+  Alert,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
-import { Add as AddIcon, Edit as EditIcon } from "@mui/icons-material";
+import { Add as AddIcon, Edit as EditIcon, HelpOutline as HelpOutlineIcon, } from "@mui/icons-material";
 import { SessionContext } from "../../SessionContext";
 
 const GATEWAY_URL = process.env.GATEWAY_URL || "http://localhost:8000";
@@ -32,15 +34,17 @@ const Enrollments = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { universityID: sessionUniversity } = useContext(SessionContext);
-
   const [enrollments, setEnrollments] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [years, setYears] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [csvErrors, setCsvErrors] = useState([]);
+  const [errorKey, setErrorKey] = useState("");
+  const csvInputRef = useRef(null);
 
   const [filters, setFilters] = useState({
     name: "",
-    dni: "", 
+    dni: "",
     email: "",
     studyProgram: "",
     academicYear: "",
@@ -49,52 +53,44 @@ const Enrollments = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
-  // Fetch data
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const { data: enrollmentData } = await axios.get(
+        `${GATEWAY_URL}/academic/enrollments/by-university/${sessionUniversity}`
+      );
+      setEnrollments(enrollmentData?.enrollments ?? []);
+
+      const { data: programData } = await axios.get(
+        `${GATEWAY_URL}/academic/studyprograms/by-university/${sessionUniversity}`
+      );
+      setPrograms(programData?.programs ?? []);
+
+      const { data: yearData } = await axios.get(
+        `${GATEWAY_URL}/academic/academicyears/by-university/${sessionUniversity}`
+      );
+      setYears(yearData?.years ?? []);
+    } catch (err) {
+      console.error("Error fetching enrollments:", err);
+      setEnrollments([]);
+      setPrograms([]);
+      setYears([]);
+      setErrorKey("error.genericError");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-
-        // Get enrollments
-        const { data: enrollmentData } = await axios.get(
-          `${GATEWAY_URL}/academic/enrollments/by-university/${sessionUniversity}`
-        );
-        setEnrollments(enrollmentData?.enrollments ?? []);
-
-        // Get study programs for filters
-        const { data: programData } = await axios.get(
-          `${GATEWAY_URL}/academic/studyprograms/by-university/${sessionUniversity}`
-        );
-        setPrograms(programData?.programs ?? []);
-
-        // Get academic years
-        const { data: yearData } = await axios.get(
-          `${GATEWAY_URL}/academic/academicyears/by-university/${sessionUniversity}`
-        );
-        setYears(yearData?.years ?? []);
-      } catch (err) {
-        console.error("Error fetching enrollments:", err);
-        setEnrollments([]);
-        setPrograms([]);
-        setYears([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+    if (sessionUniversity) fetchData();
   }, [sessionUniversity]);
 
-  // Apply filters client-side
   const filteredEnrollments = useMemo(() => {
     return enrollments.filter((en) => {
       const user = en.account?.userId || {};
-      const fullName = `${user.name || ""} ${user.firstSurname || ""} ${
-        user.secondSurname || ""
-      }`.toLowerCase();
-
+      const fullName = `${user.name || ""} ${user.firstSurname || ""} ${user.secondSurname || ""}`.toLowerCase();
       if (filters.name && !fullName.includes(filters.name.toLowerCase())) return false;
-      if (filters.dni && !(user.identityNumber || "").toLowerCase().includes(filters.dni.toLowerCase())) return false; // NEW
+      if (filters.dni && !(user.identityNumber || "").toLowerCase().includes(filters.dni.toLowerCase())) return false;
       if (filters.email && !(en.account?.email || "").toLowerCase().includes(filters.email.toLowerCase())) return false;
       if (filters.studyProgram && en.studyProgramId?._id !== filters.studyProgram) return false;
       if (filters.academicYear && en.academicYearId?._id !== filters.academicYear) return false;
@@ -104,6 +100,58 @@ const Enrollments = () => {
 
   const handleEnrollmentClick = (id) => navigate(`/enrollments/${id}`);
   const handleCreateEnrollment = () => navigate("/enrollments/new");
+
+  const handleImportCSV = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      delimiter: ";", 
+      delimitersToGuess: [',', '\t', ';', '|'],
+      complete: async (results) => {
+        try {
+          const rows = results.data;
+          if (!rows.length) {
+            setErrorKey("error.emptyCSV");
+            if(csvInputRef.current)
+              csvInputRef.current.value = "";
+            return;
+          }
+
+          setLoading(true);
+          const { data } = await axios.post(
+            `${GATEWAY_URL}/academic/enrollments/import/${sessionUniversity}`,
+            { rows }
+          );
+
+          if (data.errors?.length) {
+            setCsvErrors(
+              data.errors.map((e) => ({
+                line: e.line,
+                data: e.data,
+                key: e.errorKey,
+              }))
+            );
+          } else {
+            setCsvErrors([]);
+          }
+
+          setErrorKey("");
+          await fetchData();
+        } catch (err) {
+          console.error("Import CSV error:", err);
+          const key = "error." + (err.response?.data?.errorKey || "genericError");
+          setErrorKey(key);
+        } finally {
+          setLoading(false);
+          if(csvInputRef.current)
+            csvInputRef.current.value = "";
+        }
+      },
+    });
+  };
 
   if (loading) {
     return (
@@ -115,12 +163,72 @@ const Enrollments = () => {
 
   return (
     <Container data-testid="enrollments-list-page" maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+
+      {errorKey && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {t(errorKey)}
+        </Alert>
+      )}
+
+      {csvErrors.length > 0 && (
+        <Stack spacing={1} sx={{ mb: 2 }}>
+          {csvErrors.map((e, idx) => (
+            <Alert
+              key={idx}
+              severity="warning"
+              onClose={() => setCsvErrors((prev) => prev.filter((_, i) => i !== idx))}
+              sx={{
+                borderRadius: 2,
+                alignItems: "center",
+                "& .MuiAlert-message": { width: "100%" },
+              }}
+            >
+              {e.line ? (
+                <>
+                  {t("error." + e.key)} → <strong>{e.data}</strong> ({t("line")} {e.line})
+                </>
+              ) : (
+                <>
+                  {t("error." + e.key)} → <strong>{e.data}</strong>
+                </>
+              )}
+            </Alert>
+          ))}
+        </Stack>
+      )}
+
       <Paper sx={{ p: 3 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <Typography variant="h4">{t("enrollmentsNav")}</Typography>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreateEnrollment}>
-            {t("enrollments.new")}
-          </Button>
+
+          <Box display="flex" gap={1} alignItems="center">
+            <Button variant="outlined" component="label" color="primary">
+              {t("enrollments.import")}
+              <input
+                data-testid="enrollments-file-input"
+                key={Date.now()}
+                type="file"
+                accept=".csv"
+                hidden
+                ref={csvInputRef}
+                onChange={handleImportCSV}
+              />
+            </Button>
+
+            <Tooltip
+              title={t("enrollments.csvHelp")}
+              arrow
+              placement="right"
+            >
+              <IconButton color="info" size="small">
+                <HelpOutlineIcon />
+              </IconButton>
+            </Tooltip>
+
+            <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreateEnrollment}>
+              {t("enrollments.new")}
+            </Button>
+          </Box>
         </Box>
 
         {/* Filters */}
@@ -143,36 +251,40 @@ const Enrollments = () => {
             onChange={(e) => setFilters({ ...filters, email: e.target.value })}
             autoComplete="off"
           />
-          <FormControl>
-            <InputLabel>{t("studyPrograms.program")}</InputLabel>
-            <Select
-              value={filters.studyProgram}
-              label={t("studyPrograms.program")}
-              onChange={(e) => setFilters({ ...filters, studyProgram: e.target.value })}
-            >
-              <MenuItem value="">{t("common.all")}</MenuItem>
-              {programs.map((p) => (
-                <MenuItem key={p._id} value={p._id}>
-                  {p.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl>
-            <InputLabel>{t("academicYears.single")}</InputLabel>
-            <Select
-              value={filters.academicYear}
-              label={t("academicYears.single")}
-              onChange={(e) => setFilters({ ...filters, academicYear: e.target.value })}
-            >
-              <MenuItem value="">{t("common.all")}</MenuItem>
-              {years.map((y) => (
-                <MenuItem key={y._id} value={y._id}>
-                  {y.yearLabel}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Autocomplete
+            sx={{ minWidth: 200 }}
+            value={programs.find((p) => p._id === filters.studyProgram) || null}
+            options={programs}
+            getOptionLabel={(option) => option.name || t("common.all")}
+            isOptionEqualToValue={(option, value) => option._id === value._id}
+            onChange={(_event, newValue) => {
+              setFilters({ ...filters, studyProgram: newValue ? newValue._id : "" });
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label={t("studyPrograms.program")}
+                variant="outlined"
+              />
+            )}
+          />
+          <Autocomplete
+            sx={{ minWidth: 200 }}
+            value={years.find((y) => y._id === filters.academicYear) || null}
+            options={years}
+            getOptionLabel={(option) => option.yearLabel || t("common.all")}
+            isOptionEqualToValue={(option, value) => option._id === value._id}
+            onChange={(_event, newValue) => {
+              setFilters({ ...filters, academicYear: newValue ? newValue._id : "" });
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label={t("academicYears.single")}
+                variant="outlined"
+              />
+            )}
+          />
         </Box>
 
         <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 2 }}>
@@ -232,7 +344,7 @@ const Enrollments = () => {
                           </Typography>
                         </Box>
                       </TableCell>
-                      <TableCell>{user.identityNumber || "—"}</TableCell> {/* NEW */}
+                      <TableCell>{user.identityNumber || "—"}</TableCell>
                       <TableCell>{en.account?.email}</TableCell>
                       <TableCell>{en.studyProgramId?.name || "—"}</TableCell>
                       <TableCell>{en.academicYearId?.yearLabel || "—"}</TableCell>
@@ -266,6 +378,7 @@ const Enrollments = () => {
 
         {/* Pagination */}
         <TablePagination
+          data-testid="rows-per-page"
           component="div"
           count={filteredEnrollments.length}
           page={page}

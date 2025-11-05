@@ -1,5 +1,4 @@
 // @ts-check
-
 const request = require("supertest");
 const express = require("express");
 const { describe, it, expect, afterEach } = require("@jest/globals");

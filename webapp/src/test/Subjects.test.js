@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import Subjects from "../pages/subjects/Subjects";
 import axios from "axios";
 import { SessionContext } from "../SessionContext";
@@ -93,7 +93,7 @@ describe("Subjects Page", () => {
     await waitFor(() => screen.getByText("Math"));
 
     const selects = screen.getAllByRole("combobox");
-    const spSelect = selects[0]; // primer combobox: study program
+    const spSelect = selects[0];
     fireEvent.mouseDown(spSelect);
 
     const option = await screen.findByText("Engineering");
@@ -134,5 +134,56 @@ describe("Subjects Page", () => {
     fireEvent.click(createButton);
 
     expect(mockNavigate).toHaveBeenCalledWith("/subjects/new");
+  });
+
+  test("handles pagination change", async () => {
+    const subjects = Array.from({ length: 12 }, (_, i) => ({
+      _id: `s${i}`,
+      name: `Subject ${i}`,
+      code: `CODE${i}`,
+      studyPrograms: ["sp1"],
+    }));
+
+    const programs = [{ _id: "sp1", name: "Engineering" }];
+
+    axios.get.mockResolvedValueOnce({ data: { subjects } });
+    axios.get.mockResolvedValueOnce({ data: { programs } });
+
+    renderWithProviders(<Subjects />);
+    await waitFor(() => expect(screen.getByText("Subject 0")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByLabelText("Go to next page"));
+
+    expect(screen.getByText("Subject 5")).toBeInTheDocument();
+  });
+
+  test("changes rows per page and resets page", async () => {
+    const manySubjects = Array.from({ length: 12 }, (_, i) => ({
+      _id: `s${i}`,
+      name: `Subject ${i}`,
+      code: `CODE${i}`,
+      studyPrograms: ["sp1"],
+    }));
+
+    const programs = [{ _id: "sp1", name: "Engineering" }];
+
+    axios.get.mockResolvedValueOnce({ data: { subjects: manySubjects } });
+    axios.get.mockResolvedValueOnce({ data: { programs } });
+
+    renderWithProviders(<Subjects />);
+
+    await waitFor(() => expect(screen.getByText("Subject 0")).toBeInTheDocument());
+    expect(screen.queryByText("Subject 7")).not.toBeInTheDocument();
+
+    const pagination = screen.getByTestId("rows-per-page");
+    const selectTrigger = within(pagination).getByRole("combobox");
+
+    fireEvent.mouseDown(selectTrigger);
+    const option = await screen.findByRole("option", { name: "10" });
+    fireEvent.click(option);
+
+    expect(selectTrigger).toHaveTextContent("10");
+
+    await waitFor(() => expect(screen.getByText("Subject 7")).toBeInTheDocument());
   });
 });

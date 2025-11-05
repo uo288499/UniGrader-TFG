@@ -8,6 +8,6 @@ const enrollmentSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Ensures a user can only be enrolled in a specific program for a specific year once.
-enrollmentSchema.index({ userId: 1, studyProgramId: 1, academicYearId: 1 }, { unique: true });
+enrollmentSchema.index({ accountId: 1, studyProgramId: 1, academicYearId: 1 }, { unique: true });
 
 module.exports = mongoose.model('Enrollment', enrollmentSchema);

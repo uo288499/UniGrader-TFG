@@ -129,4 +129,115 @@ describe("AcademicYearForm Page", () => {
     });
   });
 
+  it("loads academic year data when editing", async () => {
+    ReactRouter.useParams.mockReturnValue({ id: "ay123" });
+
+    mockAxios.onGet(`${GATEWAY_URL}/academic/academicyears/ay123`).reply(200, {
+      academicYear: {
+        _id: "ay123",
+        universityId: { _id: "uni1" },
+        yearLabel: "2024/25",
+        startDate: "2024-09-01T00:00:00.000Z",
+        endDate: "2025-06-30T00:00:00.000Z",
+      },
+    });
+
+    renderWithContext(<AcademicYearForm />);
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("2024/25")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("2024-09-01")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("2025-06-30")).toBeInTheDocument();
+    });
+  });
+
+  it("redirects to not-found if user has no access", async () => {
+    ReactRouter.useParams.mockReturnValue({ id: "ay123" });
+
+    mockAxios.onGet(`${GATEWAY_URL}/academic/academicyears/ay123`).reply(200, {
+      academicYear: {
+        _id: "ay123",
+        universityId: { _id: "otherUni" },
+        yearLabel: "2024/25",
+        startDate: "2024-09-01T00:00:00.000Z",
+        endDate: "2025-06-30T00:00:00.000Z",
+      },
+    });
+
+    renderWithContext(<AcademicYearForm />);
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/not-found"));
+  });
+
+  it("updates an existing academic year successfully", async () => {
+    ReactRouter.useParams.mockReturnValue({ id: "ay123" });
+
+    mockAxios.onGet(`${GATEWAY_URL}/academic/academicyears/ay123`).reply(200, {
+      academicYear: {
+        _id: "ay123",
+        universityId: { _id: "uni1" },
+        yearLabel: "2024/25",
+        startDate: "2024-09-01T00:00:00.000Z",
+        endDate: "2025-06-30T00:00:00.000Z",
+      },
+    });
+
+    mockAxios.onPut(`${GATEWAY_URL}/academic/academicyears/ay123`).reply(200, {});
+
+    renderWithContext(<AcademicYearForm />);
+    await waitFor(() => screen.getByDisplayValue("2024/25"));
+
+    fireEvent.change(screen.getByLabelText(/academicYears.yearLabel/i), { target: { value: "2025/26" } });
+    const submitButton = screen.getByRole("button", { name: /update/i });
+    await act(async () => fireEvent.click(submitButton));
+
+    await waitFor(() => expect(screen.getByText(/academicYears.success.updated/i)).toBeInTheDocument());
+  });
+
+  it("handles delete confirmation and success", async () => {
+    ReactRouter.useParams.mockReturnValue({ id: "ay123" });
+    jest.spyOn(window, "confirm").mockReturnValue(true);
+
+    mockAxios.onGet(`${GATEWAY_URL}/academic/academicyears/ay123`).reply(200, {
+      academicYear: {
+        _id: "ay123",
+        universityId: { _id: "uni1" },
+        yearLabel: "2024/25",
+        startDate: "2024-09-01T00:00:00.000Z",
+        endDate: "2025-06-30T00:00:00.000Z",
+      },
+    });
+
+    mockAxios.onDelete(`${GATEWAY_URL}/academic/academicyears/ay123`).reply(200);
+
+    renderWithContext(<AcademicYearForm />);
+    await waitFor(() => screen.getByDisplayValue("2024/25"));
+
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await act(async () => fireEvent.click(deleteButton));
+
+    await waitFor(() => expect(screen.getByText(/academicYears.success.deleted/i)).toBeInTheDocument());
+  });
+
+  it("handles delete cancel", async () => {
+    ReactRouter.useParams.mockReturnValue({ id: "ay123" });
+    jest.spyOn(window, "confirm").mockReturnValue(false);
+
+    mockAxios.onGet(`${GATEWAY_URL}/academic/academicyears/ay123`).reply(200, {
+      academicYear: {
+        _id: "ay123",
+        universityId: { _id: "uni1" },
+        yearLabel: "2024/25",
+        startDate: "2024-09-01T00:00:00.000Z",
+        endDate: "2025-06-30T00:00:00.000Z",
+      },
+    });
+
+    renderWithContext(<AcademicYearForm />);
+    await waitFor(() => screen.getByDisplayValue("2024/25"));
+
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await act(async () => fireEvent.click(deleteButton));
+
+    expect(mockNavigate).not.toHaveBeenCalledWith("/academic-years");
+  });
 });

@@ -22,6 +22,7 @@ module.exports = (app) => {
       validation.fields.subjectId,
       validation.fields.studyProgramId,
       validation.fields.evaluationGroups,
+      validation.fields.maxGrade,
       checkExact()
     ),
     async (req, res) => {
@@ -121,6 +122,7 @@ module.exports = (app) => {
       validation.fields.evaluationGroups,
       validation.fields.id,
       validation.fields.v,
+      validation.fields.maxGrade,
       checkExact()
     ),
     async (req, res) => {

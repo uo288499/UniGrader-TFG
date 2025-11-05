@@ -6,6 +6,7 @@ import {
   Container,
   Paper,
   TextField,
+  Autocomplete,
   Button,
   Typography,
   Table,
@@ -30,7 +31,7 @@ const GATEWAY_URL = process.env.GATEWAY_URL || "http://localhost:8000";
 const Groups = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { universityID } = useContext(SessionContext);
+  const { universityID, role, accountID } = useContext(SessionContext);
 
   const [groups, setGroups] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -44,19 +45,24 @@ const Groups = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
-  // Fetch groups and courses
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        // Groups
         const { data: groupsData } = await axios.get(
           `${GATEWAY_URL}/academic/groups/by-university/${universityID}`
         );
-        setGroups(groupsData?.groups ?? []);
+        let groupsFetched = groupsData?.groups ?? [];
 
-        // Courses for filter dropdown
+        if (role === "professor") {
+          groupsFetched = groupsFetched.filter((g) =>
+            g.professors?.includes(accountID)
+          );
+        }
+
+        setGroups(groupsFetched);
+
         const { data: coursesData } = await axios.get(
           `${GATEWAY_URL}/academic/courses/by-university/${universityID}`
         );
@@ -73,7 +79,6 @@ const Groups = () => {
     if (universityID) fetchData();
   }, [universityID]);
 
-  // Filtered groups
   const filteredGroups = useMemo(() => {
     return groups.filter((g) => {
       if (filters.name && !g.name.toLowerCase().includes(filters.name.toLowerCase())) return false;
@@ -98,9 +103,11 @@ const Groups = () => {
       <Paper sx={{ p: 3 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <Typography variant="h4">{t("groupsNav")}</Typography>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreateGroup}>
-            {t("group.new")}
-          </Button>
+          { role !== "professor" && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreateGroup}>
+              {t("group.new")}
+            </Button>
+          )}
         </Box>
 
         {/* Filters */}
@@ -110,21 +117,14 @@ const Groups = () => {
             value={filters.name}
             onChange={(e) => setFilters({ ...filters, name: e.target.value })}
           />
-          <FormControl>
-            <InputLabel>{t("group.course")}</InputLabel>
-            <Select
-              value={filters.course}
-              label={t("group.course")}
-              onChange={(e) => setFilters({ ...filters, course: e.target.value })}
-            >
-              <MenuItem value="">{t("common.all")}</MenuItem>
-              {courses.map((c) => (
-                <MenuItem key={c._id} value={c._id}>
-                  {c.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Autocomplete
+            options={courses}
+            getOptionLabel={(c) => `${c.name} - ${c.academicYearId.yearLabel}`}
+            value={courses.find(c => c._id === filters.course) || null}
+            onChange={(_, v) => setFilters({ ...filters, course: v?._id || "" })}
+            renderInput={(params) => <TextField {...params} label={t("group.course")} />}
+            isOptionEqualToValue={(option, value) => option._id === value._id}
+          />
         </Box>
 
         <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 2 }}>
@@ -165,7 +165,12 @@ const Groups = () => {
                         </Typography>
                       </Box>
                     </TableCell>
-                    <TableCell>{group.courseId?.name ?? "-"}</TableCell>
+                    <TableCell>
+                      {(() => {
+                        const course = courses.find(c => c._id === group.courseId?._id);
+                        return course ? `${course.name} - ${course.academicYearId.yearLabel}` : "-";
+                      })()}
+                    </TableCell>
                     <TableCell>
                       <EditIcon
                         data-testid={`edit-button-${group._id}`}
@@ -195,6 +200,7 @@ const Groups = () => {
 
         {/* Pagination */}
         <TablePagination
+          data-testid="rows-per-page"
           component="div"
           count={filteredGroups.length}
           page={page}

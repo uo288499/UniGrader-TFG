@@ -1,13 +1,18 @@
 {
   "aria": {
     "openDrawer": "Abrir menú lateral",
+    "closeDrawer": "Cerrar menú lateral",
     "selectLanguage": "Seleccionar idioma",
-    "accessibilityOptions": "Opciones de accesibilidad"
+    "accessibilityOptions": "Opciones de accesibilidad",
+    "profile": "Perfil"
   },
   "themes": {
     "grayscale": "Escala de grises",
     "largeText": "Texto grande"
   },
+  "line": "línea",
+  "sourceCode": "Código Fuente",
+  "home": "Inicio",
   "logout": "Cerrar sesión",
   "navigation": "Navegación",
   "university": "Universidades",
@@ -17,7 +22,7 @@
   "enrollmentsNav": "Matrículas",
   "subjects": "Materias",
   "courses": "Asignaturas",
-  "grades": "Notas",
+  "gradesNav": "Notas",
   "groupsNav": "Grupos",
   "reports": "Informes",
   "noResults": "No se encontraron resultados",
@@ -34,12 +39,13 @@
     "title": "Iniciar sesión",
     "emailLabel": "Dirección de correo electrónico",
     "passwordLabel": "Contraseña",
-    "forgotPassword": "¿Olvidaste la contraseña?",
+    "forgotPassword": "¿Olvidaste o no tienes contraseña?",
     "signInButton": "Iniciar sesión",
     "signingInButton": "Iniciando sesión..."
   },
   "error": {
     "invalidCredentials": "Correo electrónico o contraseña inválidos",
+    "passwordWrong": "La contraseña actual es incorrecta.",
     "invalidToken": "Sesión expirada o token inválido. Por favor, inicia sesión de nuevo.",
     "validationError": "Error de validación. Por favor, revisa los datos.",
     "loginFailed": "Error al iniciar sesión. Por favor, inténtalo de nuevo.",
@@ -59,7 +65,38 @@
     "courseExists": "Ya existe una asignatura con este código en el año académico seleccionado.",
     "courseHasGroups": "No puedes eliminar una asignatura que tiene grupos asociados.",
     "enrollmentExists": "El estudiante ya está matriculado en este programa.",
-    "groupExists": "Ya existe un grupo con este nombre en esta asignatura."
+    "groupExists": "Ya existe un grupo con este nombre en esta asignatura.",
+    "evalautionItemExists": "Ya existe un item evaluable con este nombre y tipo en este grupo.",
+    "emptyCSV": "El archivo CSV está vacío o mal formateado.",
+    "professorNotFound": "El profesor no existe.",
+    "professorAlreadyInThisGroup": "El profesor ya está en este grupo.",
+    "studentNotFound": "El estudiante no existe.",
+    "studentNotEnrolled": "El estudiante no está matricualdo al programa de estudio de esta asignatura.",
+    "studentAlreadyInGroup": "El estudiante ya pertenece a otro grupo del mismo curso.",
+    "studentAlreadyInThisGroup": "El estudiante ya está en este grupo.",
+    "studyProgramNotFound": "El programa de estudio no existe.",
+    "academicYearNotFound": "El año académico no existe.",
+    "userNotFound": "No existe ningún usuario con el número de identidad indicado.",
+    "userAlreadyExists": "Ya existe un usuario con ese número de identidad.",
+    "userMissingFields": "Faltan campos obligatorios (identityNumber, nombre o primer apellido) para crear el usuario.",
+    "userConflictData": "Los datos proporcionados no coinciden con un usuario existente (identityNumber asociado a otro nombre o apellidos).",
+    "userDuplicateInFile": "El número de identidad está duplicado en el archivo CSV",
+    "invalidRole": "El rol especificado no existe.",
+    "invalidUniversity": "La universidad especificada no existe.",
+    "accountEmailExists": "Ya existe una cuenta con ese correo electrónico.",
+    "universityMismatch": "No tienes permisos para crear cuentas en otra universidad.",
+    "globalAdminCreationDenied": "No tienes permisos para crear cuentas de tipo Global Admin.",
+    "accountMissingFields": "Faltan campos obligatorios (email, rol, universidad) para crear la cuenta.",
+    "accountDuplicatedInFile": "El correo electrónico está duplicado en el archivo CSV",
+    "groupNotFound": "No se encontró el grupo especificado.",
+    "studentNotFoundOrNotInGroup": "El estudiante no existe o no pertenece al grupo seleccionado.",
+    "studentDuplicatedInFile": "El estudiante aparece más de una vez en el archivo.",
+    "evaluationTypeNotFound": "El tipo de evaluación especificado no existe.",
+    "evaluationItemNotFound": "El ítem de evaluación no existe o no coincide con el tipo.",
+    "duplicateItemInRow": "Un ítem de evaluación aparece más de una vez en la misma fila.",
+    "invalidGradeValue": "La nota no es válida. Debe estar entre 0 y 10.",
+    "invalidExtraordinaryGrade": "La nota extraordinaria no es válida. Debe estar entre 0 y 10.",
+    "invalidEmailFormat": "El formato del correo electrónico no es válido."
   },
   "forgotPassword": {
     "title": "Restablecer contraseña",
@@ -138,6 +175,8 @@
     }
   },
   "users": {
+    "csvHelp": "Formato: incluye cabeceras. Cada fila debe contener los siguientes campos: 'identityNumber', 'name', 'firstSurname', 'secondSurname', 'email', 'role', 'university'. El campo 'identityNumber' es obligatorio. Si se desea crear una cuenta para un usuario ya existente, los campos de nombre y apellidos deben coincidir con los registrados en la base de datos o dejarse vacíos. Los campos 'email', 'role' y 'university' pertenecen a la cuenta. La universidad debe indicarse por su nombre. Se recomienda usar ';' como separador, aunque también se aceptan otros delimitadores válidos (',', tabulación, '|').",
+    "import": "Importar usuarios y cuentas (CSV)",
     "create": "CREAR CUENTA",
     "edit": "EDITAR CUENTA",
     "selectExistingUser": "Seleccionar Usuario Existente (Opcional)",
@@ -272,6 +311,7 @@
     }
   },
   "subject": {
+    "search": "Buscar programas de estudio",
     "single": "Materia",
     "new": "Nueva Materia",
     "name": "Nombre de la Materia",
@@ -314,6 +354,7 @@
     }
   },
   "course": {
+    "maxGradeIfMinNotReached": "Nota máxima si no se cumplen los mínimos",
     "single": "Asignatura",
     "new": "Nueva Asignatura",
     "name": "Nombre de la Asignatura",
@@ -348,10 +389,14 @@
       "invalidWeight": "El peso total debe estar entre 0 y 100.",
       "totalWeightNot100": "La suma de los pesos totales debe ser igual al 100%.",
       "belowMin": "El peso total está por debajo del mínimo para este tipo de evaluación definido en la materia.",
-      "aboveMax": "El peso total excede el máximo para este tipo de evaluación definido en la materia."
+      "aboveMax": "El peso total excede el máximo para este tipo de evaluación definido en la materia.",
+      "maxGradeIfMinNotReachedRequired": "La nota máxima es obligatoria.",
+      "maxGradeIfMinNotReachedRange": "La nota máxima debe estar entre 0 y 10."
     }
   },
   "enrollments": {
+    "csvHelp": "Formato: incluye cabeceras. El archivo debe incluir las columnas 'email', 'studyProgram' y 'academicYear'. El campo 'email' corresponde al correo del estudiante, 'studyProgram' al nombre exacto del programa de estudio (por ejemplo, 'Ingeniería del Software') y 'academicYear' al identificador del año académico (por ejemplo, '2025/2026'). Se recomienda usar ';' como separador, aunque también se aceptan otros delimitadores válidos (',', tabulación, '|').",
+    "import": "Importar matrículas (CSV)",
     "new": "Nueva Matrícula",
     "createTitle": "CREAR MATRÍCULA",
     "updateTitle": "ACTUALIZAR MATRÍCULA",
@@ -370,6 +415,10 @@
     "confirmDelete": "¿Estás seguro de que deseas eliminar esta matrícula?"
   },
   "group": {
+    "csvHelpProfessors": "Formato: no incluye cabeceras. Una sola columna con los correos electrónicos de los profesores. Se recomienda usar ';' como separador, aunque otros delimitadores válidos (',', tabulación, '|') también son aceptados.",
+    "csvHelpStudents": "Formato: no incluye cabeceras. Una sola columna con los correos electrónicos de los alumnos. Se recomienda usar ';' como separador, aunque otros delimitadores válidos (',', tabulación, '|') también son aceptados.",
+    "importProfessors": "Importar profesores (CSV)",
+    "importStudents": "Importar estudiantes (CSV)",
     "single": "Grupo",
     "new": "Nuevo Grupo",
     "name": "Nombre del Grupo",
@@ -384,6 +433,7 @@
     "selectedStudents": "Estudiantes añadidos",
     "availableProfessors": "Profesores disponibles",
     "selectedProfessors": "Profesores añadidos",
+    "manageEvaluationItems": "Gestionar items evaluables",
     "success": {
       "created": "Grupo creado correctamente.",
       "updated": "Grupo actualizado correctamente.",
@@ -396,5 +446,95 @@
       "atLeastOneProfessor": "Debes asignar al menos un profesor al grupo.",
       "atLeastOneStudent": "Debes asignar al menos un estudiante al grupo."
     } 
+  },
+  "evaluationItem": {
+    "manageItems": "Gestionar Items de Evaluación",
+    "systemId": "ID del Sistema",
+    "name": "Nombre del Item",
+    "weight": "Peso (%)",
+    "minGrade": "Nota Mínima",
+    "addItem": "Añadir Ítem",
+    "saveChanges": "Guardar Cambios",
+    "hasMinGrade": "¿Tiene Nota Mínima?",
+    "success": {
+      "synced": "Los items de evaluación se han sincronizado correctamente."
+    },
+    "error": {
+      "nameRequired": "El nombre del ítem es obligatorio.",
+      "typeRequired": "El tipo de evaluación es obligatorio.",
+      "weightInvalid": "El peso debe ser mayor que 0 y máximo 100.",
+      "minGradeInvalid": "La nota mínima debe estar entre 0 y 10.",
+      "duplicate": "Nombre de item duplicado para el mismo tipo de evaluación.",
+      "nameTooLong": "El nombre no puede superar los 100 caracteres.",
+      "weightRequired": "El peso del item es obligatorio.",
+      "totalWeightNot100": "El peso total para este tipo de evaluación debe ser igual a 100%."
+    }
+  },
+  "gradesManagement": {
+    "csvHelp": "Formato: incluye cabeceras. La primera columna debe ser 'email', y la última 'extraordinary', no importando el resto de cabeceras. Cada fila debe comenzar con el correo electrónico del alumno y continuar con grupos de tres columnas por cada ítem evaluable: (1) nombre del ítem, (2) tipo de evaluación al que pertenece, y (3) nota. Al final de la fila iría una última columna con la nota extraordinaria final. Ejemplo: 'alumno@correo.es; Examen 1; Teoría; 7.5; Práctica 1; Laboratorio; 9; 8.25'. Los campos de notas pueden ir vacíos. Se recomienda usar ';' como separador, aunque otros delimitadores válidos (',', tabulación, '|') también son aceptados.",
+    "importCSV": "Importar notas (CSV)",
+    "title": "Gestión de Calificaciones",
+    "selectCourse": "Seleccionar Curso",
+    "selectGroup": "Seleccionar Grupo",
+    "unnamedGroup": "Grupo Sin Nombre",
+    "selectStudent": "Seleccionar Estudiante",
+    "searchStudent": "Buscar estudiante...",
+    "extraordinaryGrade": "Calificación Extraordinaria",
+    "extraordinaryFinalGrade": "Calificación Final Extraordinaria",
+    "finalGrade": "Calificación Final",
+    "delete": "Eliminar",
+    "save": "Guardar",
+    "saveGrades": "Guardar Calificaciones",
+    "loadingData": "Cargando datos de calificaciones...",
+    "successSavedGrades": "Calificaciones y calificación final ordinaria guardadas correctamente",
+    "successSavedExtraordinaryGrade": "Calificación extraordinaria guardada",
+    "successDeletedExtraordinaryGrade": "Calificación extraordinaria eliminada",
+    "gradesRangeError": "Todas las calificaciones deben estar entre 0 y 10",
+    "weight": "Peso del item",
+    "unknownType": "Tipo desconocido",
+    "minGrade": "Nota mínima",
+    "confirmDeleteExtraordinary": "¿Estás seguro de que deseas eliminar esta calificación extraordinaria?",
+    "finalOrdinaryGrade": "Calificación Final Ordinaria",
+    "failedMinGradeWarning": "Algunos ítems no alcanzaron la nota mínima requerida, la nota máxima será un {{max}}",
+    "success": {
+      "gradesSaved": "Notas guardadas correctamente",
+      "extraordinarySaved": "Nota extraordinaria guardada",
+      "extraordinaryDeleted": "Nota extraordinaria eliminada"
+    }, 
+    "error": {
+      "invalidGradesRange": "Todas las notas deben estar entre 0 y 10"
+    }
+  },
+  "welcome": "Bienvenido, {{name}}",
+  "homePage":{
+    "global-admin": "Como administardor global puedes gestionar cualquier universidad y usuario.",
+    "admin": "Como administardor puedes gestionar usuarios y recursos de tu universidad.",
+    "professor": "Como profesor puedes gestionar tus grupos, sus items evaluables y poner notas a tus estudiantes.",
+    "student": "Como estudiante puedes consultar tus notas y visualizar a tus profesores y compañeros."
+  },
+  "profile": {
+    "title": "Mi Perfil",
+    "personalInfo": "Información Personal",
+    "accountInfo": "Información de Cuenta",
+    "editableInfo": "Información Editable",
+    "changePhoto": "Cambiar Foto",
+    "changePassword": "Cambiar Contraseña",
+    "currentPassword": "Contraseña Actual",
+    "newPassword": "Nueva Contraseña",
+    "confirmPassword": "Confirmar Contraseña",
+    "saveChanges": "Guardar Cambios",
+    "updated": "Perfil actualizado correctamente",
+    "errorCurrentPasswordRequired": "La contraseña actual es requerida para cambiar la contraseña"
+  },
+  "grades": {
+    "title": "Mis Calificaciones",
+    "evaluationPeriod": "Periodo de Evaluación",
+    "finalGrade": "Nota Final",
+    "status": "Estado",
+    "Ordinary": "Ordinario",
+    "Extraordinary": "Extraordinario",
+    "Passed": "Aprobado",
+    "Failed": "Suspenso",
+    "noEvaluationSystem": "No se encontró sistema de evaluación"
   }
 }

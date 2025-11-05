@@ -2,18 +2,12 @@ const request = require("supertest");
 const { MongoMemoryServer } = require("mongodb-memory-server");
 const { beforeAll, afterAll, beforeEach, describe, it, expect } = require("@jest/globals");
 const config = require("../src/config");
-const { EvaluationPolicy, EvaluationItem } = require("../src/models");
+const { EvaluationPolicy, EvaluationItem, EvaluationSystem } = require("../src/models");
 const mongoose = require("mongoose");
 const axios = require("axios");
 
-// ----------------------
-// MOCK AXIOS
-// ----------------------
 jest.mock("axios");
 
-// ----------------------
-// SETUP DB & APP
-// ----------------------
 let mongoServer;
 let app;
 
@@ -336,3 +330,180 @@ describe("Evaluation Systems CRUD", () => {
     expect(res.body.errorKey).toBe("notFound");
   });
 });
+
+  describe("Evaluation Items (sync + get by group)", () => {
+    const { EvaluationItem } = require("../src/models");
+    let evaluationSystemId;
+    let evaluationTypeId;
+    let groupId;
+
+    beforeEach(async () => {
+      await EvaluationItem.deleteMany({});
+      jest.clearAllMocks();
+
+      evaluationSystemId = new mongoose.Types.ObjectId();
+      evaluationTypeId = new mongoose.Types.ObjectId();
+      groupId = new mongoose.Types.ObjectId();
+    });
+
+    it("Should create new evaluation items when syncing", async () => {
+      const itemsPayload = [
+        {
+          evaluationSystemId,
+          evaluationTypeId,
+          name: "Final Exam",
+          groupId,
+          weight: 60,
+          minGrade: 4,
+        },
+        {
+          evaluationSystemId,
+          evaluationTypeId,
+          name: "Assignments",
+          groupId,
+          weight: 40,
+        },
+      ];
+
+      const res = await request(app)
+        .put(`/evaluation-items/sync/${groupId}`)
+        .send({ items: itemsPayload });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.createdCount).toBe(2);
+      expect(res.body.updatedCount).toBe(0);
+      expect(res.body.deletedCount).toBe(0);
+      expect(res.body.items.length).toBe(2);
+    });
+
+    it("Should update existing evaluation items when syncing", async () => {
+      const item = await EvaluationItem.create({
+        evaluationSystemId,
+        evaluationTypeId,
+        name: "Midterm Exam",
+        groupId,
+        weight: 50,
+      });
+
+      const updatedPayload = [
+        {
+          _id: item._id,
+          evaluationSystemId,
+          evaluationTypeId,
+          name: "Midterm Exam",
+          groupId,
+          weight: 70,
+          minGrade: 5,
+        },
+      ];
+
+      const res = await request(app)
+        .put(`/evaluation-items/sync/${groupId}`)
+        .send({ items: updatedPayload });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.createdCount).toBe(0);
+      expect(res.body.updatedCount).toBe(1);
+      expect(res.body.deletedCount).toBe(0);
+      expect(res.body.items[0].weight).toBe(70);
+      expect(res.body.items[0].minGrade).toBe(5);
+    });
+
+    it("Should delete items not included in sync payload", async () => {
+      const itemToKeep = await EvaluationItem.create({
+        evaluationSystemId,
+        evaluationTypeId,
+        name: "Quiz 1",
+        groupId,
+        weight: 30,
+      });
+
+      const itemToDelete = await EvaluationItem.create({
+        evaluationSystemId,
+        evaluationTypeId,
+        name: "Quiz 2",
+        groupId,
+        weight: 70,
+      });
+
+      const payload = [
+        {
+          _id: itemToKeep._id,
+          evaluationSystemId,
+          evaluationTypeId,
+          name: "Quiz 1",
+          groupId,
+          weight: 50,
+        },
+      ];
+
+      const res = await request(app)
+        .put(`/evaluation-items/sync/${groupId}`)
+        .send({ items: payload });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.createdCount).toBe(0);
+      expect(res.body.updatedCount).toBe(1);
+      expect(res.body.deletedCount).toBe(1);
+
+      const remaining = await EvaluationItem.find({ groupId });
+      expect(remaining.length).toBe(1);
+      expect(remaining[0].name).toBe("Quiz 1");
+    });
+
+    it("Should return 400 if there are duplicate names in payload", async () => {
+      const payload = [
+        {
+          evaluationSystemId,
+          evaluationTypeId,
+          name: "Duplicate",
+          groupId,
+          weight: 50,
+        },
+        {
+          evaluationSystemId,
+          evaluationTypeId,
+          name: "Duplicate",
+          groupId,
+          weight: 50,
+        },
+      ];
+
+      const res = await request(app)
+        .put(`/evaluation-items/sync/${groupId}`)
+        .send({ items: payload });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.errorKey).toBe("evaluationItemExists");
+    });
+
+    it("Should get all items by group", async () => {
+      await EvaluationItem.insertMany([
+        {
+          evaluationSystemId,
+          evaluationTypeId,
+          name: "Test 1",
+          groupId,
+          weight: 40,
+        },
+        {
+          evaluationSystemId,
+          evaluationTypeId,
+          name: "Test 2",
+          groupId,
+          weight: 60,
+        },
+      ]);
+
+      const res = await request(app).get(`/evaluation-items/by-group/${groupId}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.items.length).toBe(2);
+      expect(res.body.items[0]).toHaveProperty("name");
+    });
+  });

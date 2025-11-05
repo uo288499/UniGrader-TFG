@@ -43,6 +43,21 @@ module.exports = {
     "evaluationGroups.*.evaluationTypeId": body("evaluationGroups.*.evaluationTypeId").isMongoId(),
     "evaluationGroups.*.totalWeight": body("evaluationGroups.*.totalWeight").isNumeric().custom((v) => v > 0 && v <= 100),
     courseId: body("courseId").isMongoId(),
+    // --- Evaluation Item Fields ---
+    evaluationItem: body("items").isArray(),
+    evaluationItemId: body("items.*._id").optional().isMongoId(),
+    evaluationItemName: body("items.*.name")
+      .isString()
+      .isLength({ min: 1, max: 100 }),
+    evaluationItemType: body("items.*.evaluationTypeId").isMongoId(),
+    evaluationItemWeight: body("items.*.weight")
+      .isNumeric()
+      .custom((v) => v > 0 && v <= 100),
+    evaluationItemMinGrade: body("items.*.minGrade")
+      .optional({ nullable: true })
+      .isNumeric()
+      .custom((v) => v >= 0 && v <= 10),
+    evaluationItemSystem: body("items.*.evaluationSystemId").isMongoId(),
   },
   setup,
 };

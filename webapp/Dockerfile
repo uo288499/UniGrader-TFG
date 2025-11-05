@@ -1,6 +1,9 @@
 # Use Node.js 22 as the base image
 FROM node:22
 
+ARG GATEWAY_URL
+ENV GATEWAY_URL=${GATEWAY_URL}
+
 # Set the working directory inside the contain
 WORKDIR /usr/src/app
 

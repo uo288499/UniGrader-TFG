@@ -15,7 +15,8 @@ services:
     image: ghcr.io/uo288499/unigrader-tfg/gatewayservice:latest
     profiles: ["dev", "prod"]
     build:
-      context: ./gatewayservice
+      context: .
+      dockerfile: ./gatewayservice/Dockerfile
     depends_on:
       - authservice
       - academicservice
@@ -40,21 +41,24 @@ services:
     image: ghcr.io/uo288499/unigrader-tfg/webapp:latest
     profiles: ["dev", "prod"]
     build: 
-      context: ./webapp
+      context: .
+      dockerfile: ./webapp/Dockerfile
+      args:
+        GATEWAY_URL: http://localhost:8000
     depends_on:
       - gatewayservice
     ports:
       - "80:3000"
     environment:
-      NODE_ENV: production
-      GATEWAY_URL: http://gatewayservice:8000
+      NODE_ENV: production     
 
   authservice:
     container_name: authservice-UniGrader
     image: ghcr.io/uo288499/unigrader-tfg/authservice:latest
     profiles: ["dev", "prod"]
     build:
-      context: ./services/authservice
+      context: .
+      dockerfile: ./services/authservice/Dockerfile
     depends_on:
       - mongodb
     ports:
@@ -82,7 +86,8 @@ services:
     image: ghcr.io/uo288499/unigrader-tfg/academicservice:latest
     profiles: ["dev", "prod"]
     build:
-      context: ./services/academicservice
+      context: .
+      dockerfile: ./services/academicservice/Dockerfile
     depends_on:
       - mongodb
     ports:
@@ -104,7 +109,8 @@ services:
     image: ghcr.io/uo288499/unigrader-tfg/evalservice:latest
     profiles: ["dev", "prod"]
     build:
-      context: ./services/evalservice
+      context: .
+      dockerfile: ./services/evalservice/Dockerfile
     depends_on:
       - mongodb
     ports:
@@ -121,7 +127,8 @@ services:
     image: ghcr.io/uo288499/unigrader-tfg/gradeservice:latest
     profiles: ["dev", "prod"]
     build:
-      context: ./services/gradeservice
+      context: .
+      dockerfile: ./services/gradeservice/Dockerfile
     depends_on:
       - mongodb
     ports:
@@ -138,7 +145,8 @@ services:
     image: ghcr.io/uo288499/unigrader-tfg/auditservice:latest
     profiles: ["dev", "prod"]
     build:
-      context: ./services/auditservice
+      context: .
+      dockerfile: ./services/auditservice/Dockerfile
     depends_on:
       - mongodb
     ports:

@@ -118,6 +118,11 @@ app.set("trust proxy", true);
 app.use(express.json({ limit: '6mb' }));
 app.use(express.urlencoded({ limit: '6mb', extended: true }));
 
+// Health Check
+app.get("/health", (_req, res) => {
+  res.json({ status: "OK" });
+});
+
 // Routes
 require("./routes/pub")(app);
 require("./routes")(app);

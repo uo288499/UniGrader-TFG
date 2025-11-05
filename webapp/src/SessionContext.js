@@ -13,6 +13,12 @@ const SessionProvider = ({ children }) => {
   const [role, setRole] = useState("");
   const [universityID, setUniversityID] = useState("");
 
+  const [userImageUpdated, setUserImageUpdated] = useState(false);
+  const [universityImageUpdated, setUniversityImageUpdated] = useState(false);
+
+  const toggleUserImageUpdated = () => setUserImageUpdated(prev => !prev);
+  const toggleUniversityImageUpdated = () => setUniversityImageUpdated(prev => !prev);
+
   // This effect runs once when the provider is mounted
   useEffect(() => {
     const storedSessionId = sessionStorage.getItem("sessionId");
@@ -32,24 +38,6 @@ const SessionProvider = ({ children }) => {
       const storedUniversityID = sessionStorage.getItem("universityID");
       if (storedUniversityID) setUniversityID(storedUniversityID);
     }
-  }, []);
-
-  useEffect(() => {
-    const interceptor = axios.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        if (isLoggedIn && error.response?.status === 401) {
-          destroySession();
-          alert("Your session has expired. Please log in again.");
-        }
-
-        return Promise.reject(error);
-      }
-    );
-
-    return () => {
-      axios.interceptors.response.eject(interceptor);
-    };
   }, []);
 
   // Function to create a new session when a user logs in
@@ -88,6 +76,24 @@ const SessionProvider = ({ children }) => {
     delete axios.defaults.headers.common["Authorization"];
   };
 
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (isLoggedIn && error.response?.status === 401) {
+          destroySession();
+          alert("Your session has expired. Please log in again.");
+        }
+
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
+  }, [isLoggedIn, destroySession]);
+
   return (
     <SessionContext.Provider
       value={{
@@ -97,6 +103,10 @@ const SessionProvider = ({ children }) => {
         isLoggedIn,
         role,
         universityID,
+        userImageUpdated,
+        universityImageUpdated,
+        toggleUserImageUpdated,
+        toggleUniversityImageUpdated,
         createSession,
         destroySession,
       }}

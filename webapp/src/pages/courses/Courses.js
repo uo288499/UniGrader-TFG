@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import axios from "axios";
 import {
   Container,
+  Autocomplete,
   Paper,
   TextField,
   Button,
@@ -49,31 +50,26 @@ const Courses = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
-  // Fetch courses, subjects and academic years
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        // Courses
         const { data: coursesData } = await axios.get(
           `${GATEWAY_URL}/academic/courses/by-university/${sessionUniversity}`
         );
         setCourses(coursesData?.courses ?? []);
 
-        // Subjects
         const { data: subjectsData } = await axios.get(
           `${GATEWAY_URL}/academic/subjects/by-university/${sessionUniversity}`
         );
         setSubjects(subjectsData?.subjects ?? []);
 
-        // Academic Years
         const { data: yearsData } = await axios.get(
           `${GATEWAY_URL}/academic/academicYears/by-university/${sessionUniversity}`
         );
         setAcademicYears(yearsData?.years ?? []);
 
-        // Study Programs
         const { data: spData } = await axios.get(
           `${GATEWAY_URL}/academic/studyPrograms/by-university/${sessionUniversity}`
         );
@@ -91,14 +87,13 @@ const Courses = () => {
     fetchData();
   }, []);
 
-  // Filtered courses
   const filteredCourses = useMemo(() => {
     return courses.filter((c) => {
       if (filters.name && !c.name.toLowerCase().includes(filters.name.toLowerCase())) return false;
       if (filters.code && !c.code.toLowerCase().includes(filters.code.toLowerCase())) return false;
       if (filters.subject && c.subjectId?._id !== filters.subject) return false;
       if (filters.academicYear && c.academicYearId?._id !== filters.academicYear) return false;
-      if (filters.studyProgram && !c.studyProgramId?._id !== filters.studyProgram) return false;
+      if (filters.studyProgram && c.studyProgramId?._id !== filters.studyProgram) return false;
       return true;
     });
   }, [courses, filters]);
@@ -136,51 +131,31 @@ const Courses = () => {
             value={filters.code}
             onChange={(e) => setFilters({ ...filters, code: e.target.value })}
           />
-          <FormControl>
-            <InputLabel>{t("course.subject")}</InputLabel>
-            <Select
-              value={filters.subject}
-              label={t("course.subject")}
-              onChange={(e) => setFilters({ ...filters, subject: e.target.value })}
-            >
-              <MenuItem value="">{t("common.all")}</MenuItem>
-              {subjects.map((s) => (
-                <MenuItem key={s._id} value={s._id}>
-                  {s.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl>
-            <InputLabel>{t("course.academicYear")}</InputLabel>
-            <Select
-              value={filters.academicYear}
-              label={t("course.academicYear")}
-              onChange={(e) => setFilters({ ...filters, academicYear: e.target.value })}
-            >
-              <MenuItem value="">{t("common.all")}</MenuItem>
-              {academicYears.map((y) => (
-                <MenuItem key={y._id} value={y._id}>
-                  {y.yearLabel}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl>
-            <InputLabel>{t("studyPrograms.program")}</InputLabel>
-            <Select
-              value={filters.studyProgram}
-              label={t("studyPrograms.program")}
-              onChange={(e) => setFilters({ ...filters, studyProgram: e.target.value })}
-            >
-              <MenuItem value="">{t("common.all")}</MenuItem>
-              {studyPrograms.map((sp) => (
-                <MenuItem key={sp._id} value={sp._id}>
-                  {sp.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Autocomplete
+            options={subjects}
+            getOptionLabel={(s) => s.name || ""}
+            value={subjects.find((s) => s._id === filters.subject) || null}
+            onChange={(_, v) => setFilters({ ...filters, subject: v?._id || "" })}
+            renderInput={(params) => <TextField {...params} label={t("course.subject")} />}
+            clearOnEscape
+          />
+          <Autocomplete
+            options={academicYears}
+            getOptionLabel={(y) => y.yearLabel || ""}
+            value={academicYears.find((y) => y._id === filters.academicYear) || null}
+            onChange={(_, v) => setFilters({ ...filters, academicYear: v?._id || "" })}
+            renderInput={(params) => <TextField {...params} label={t("course.academicYear")} />}
+            ListboxProps={{ style: { maxHeight: 280 } }}
+            clearOnEscape
+          />
+          <Autocomplete
+            options={studyPrograms}
+            getOptionLabel={(sp) => sp.name || ""}
+            value={studyPrograms.find((sp) => sp._id === filters.studyProgram) || null}
+            onChange={(_, v) => setFilters({ ...filters, studyProgram: v?._id || "" })}
+            renderInput={(params) => <TextField {...params} label={t("studyPrograms.program")} />}
+            clearOnEscape
+          />
         </Box>
 
         <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 2 }}>
@@ -258,6 +233,7 @@ const Courses = () => {
 
         {/* Pagination */}
         <TablePagination
+          data-testid="rows-per-page"
           component="div"
           count={filteredCourses.length}
           page={page}

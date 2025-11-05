@@ -61,6 +61,11 @@ const app = express();
 app.set("trust proxy", true);
 app.use(express.json());
 
+// Health Check
+app.get("/health", (_req, res) => {
+  res.json({ status: "OK" });
+});
+
 // Routes
 require("./routes")(app);
 

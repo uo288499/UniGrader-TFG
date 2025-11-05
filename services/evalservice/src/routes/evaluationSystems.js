@@ -7,7 +7,6 @@ const validation = require("../validation");
  * @param {import("express").Router} app
  */
 module.exports = (app) => {
-  // Crear un evaluation system para un curso
   app.post(
     "/evaluation-systems",
     ...validation.setup(
@@ -43,7 +42,6 @@ module.exports = (app) => {
     }
   );
 
-  // Obtener system por curso
   app.get("/evaluation-systems/by-course/:id", async (req, res) => {
     try {
       const courseId = req.params.id;
@@ -62,7 +60,6 @@ module.exports = (app) => {
     }
   });
 
-  // Obtener system por ID
   app.get("/evaluation-systems/:id", async (req, res) => {
     try {
       const { id } = req.params;
@@ -81,7 +78,6 @@ module.exports = (app) => {
     }
   });
 
-  // Actualizar un system
   app.put(
     "/evaluation-systems/:id",
     ...validation.setup(
@@ -122,7 +118,6 @@ module.exports = (app) => {
     }
   );
 
-  // Eliminar un system
   app.delete("/evaluation-systems/:id", async (req, res) => {
     try {
       const { id } = req.params;

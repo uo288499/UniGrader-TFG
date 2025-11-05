@@ -54,7 +54,7 @@ const UserForm = () => {
   const { id } = useParams()
   const [userEditID, setuserEditID] = useState("")
   const isEditing = Boolean(id)
-  const { role: currentUserRole, userID: currentUserId, universityID: currentUniversityId } = useContext(SessionContext)
+  const { role: currentUserRole, userID: currentUserId, universityID: currentUniversityId, toggleUserImageUpdated } = useContext(SessionContext)
 
   const [loading, setLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -72,12 +72,14 @@ const UserForm = () => {
 
   const photoInputRef = useRef(null)
 
+  const [initialPhotoUrl, setInitialPhotoUrl] = useState("");
+
   const [userData, setUserData] = useState({
     identityNumber: "",
     name: "",
     firstSurname: "",
     secondSurname: "",
-    photoUrl: "", // URL de la imagen actual en la DB
+    photoUrl: "",
   })
 
   const [accountData, setAccountData] = useState({
@@ -87,8 +89,8 @@ const UserForm = () => {
   })
 
   const [errors, setErrors] = useState({})
-  const [photoFile, setPhotoFile] = useState(null) // Archivo de imagen seleccionado
-  const [photoPreview, setPhotoPreview] = useState("") // Preview Base64 o URL de Cloudinary
+  const [photoFile, setPhotoFile] = useState(null) 
+  const [photoPreview, setPhotoPreview] = useState("") 
 
   useEffect(() => {
     const fetchData = async () => {
@@ -107,13 +109,15 @@ const UserForm = () => {
             ...prev,
             universityId: currentUniversityId,
           }))
+
+          setInitialPhotoUrl("");
         }
 
         if (isEditing) {
           const { data } = await axios.get(`${GATEWAY_URL}/authVerify/accounts/${id}`) 
           const u = data.account
 
-          if (currentUserRole !== "global-admin" && currentUniversityId !== u.univeristyID) {
+          if (currentUserRole !== "global-admin" && currentUniversityId !== String(u.universityId)) {
             navigate("/not-found");
             return;
           }
@@ -125,7 +129,7 @@ const UserForm = () => {
             name: u.userId.name,
             firstSurname: u.userId.firstSurname,
             secondSurname: u.userId.secondSurname || "",
-            photoUrl: u.userId.photoUrl || "", // Guarda la URL de la DB
+            photoUrl: u.userId.photoUrl || "", 
           })
 
           setAccountData({
@@ -135,6 +139,7 @@ const UserForm = () => {
           })
 
           setPhotoPreview(u.userId.photoUrl || "")
+          setInitialPhotoUrl(u.userId.photoUrl || "");
         }
       } catch (err) {
         const key = "error." + (err.response?.data?.errorKey || "genericError")
@@ -265,8 +270,6 @@ const UserForm = () => {
   const handleRemovePhoto = () => {
     setPhotoFile(null)
     setPhotoPreview("")
-    // IMPORTANTE: En edición, si el usuario borra la foto, enviamos una cadena vacía
-    // para que el backend sepa que debe borrar la imagen de Cloudinary.
     setUserData((prev) => ({ ...prev, photoUrl: "" })) 
 
     if (photoInputRef.current) {
@@ -286,7 +289,6 @@ const UserForm = () => {
 
     setLoading(true)
 
-    // --- Lógica de Base64 para la imagen ---
     let photoUrlBase64 = null
     if (photoFile) {
       try {
@@ -297,7 +299,6 @@ const UserForm = () => {
         return
       }
     }
-    // ----------------------------------------
 
     try {
       if (!isEditing && selectedExistingUser) {
@@ -319,7 +320,6 @@ const UserForm = () => {
 
         setSuccessKey("users.accountCreated")
       } else {
-        // Lógica para crear/editar User y Account
         const payload = {
           ...userData,
           email: accountData.email,
@@ -327,13 +327,16 @@ const UserForm = () => {
           universityId: accountData.universityId,
           // Añadir Base64 si existe, si no, se deja fuera o se manda la photoUrl de la DB.
           ...(photoUrlBase64 && { photoUrlBase64 }), 
-          // Si el usuario borró la foto (photoUrl="") o no se subió una nueva Base64,
-          // el campo photoUrl del userData se envía, incluyendo la cadena vacía
-          // que indica al backend que debe eliminar la foto en PUT.
         }
 
         if (isEditing) {
-          await axios.put(`${GATEWAY_URL}/authVerify/users/${id}`, payload)
+          const {data} = await axios.put(`${GATEWAY_URL}/authVerify/users/${id}`, payload)
+
+          const updatedPhoto = data.user.photoUrl || "";
+          if (updatedPhoto !== initialPhotoUrl) {
+            toggleUserImageUpdated(); 
+            setInitialPhotoUrl(updatedPhoto);
+          }          
         } else {
           const { data } = await axios.post(`${GATEWAY_URL}/authVerify/users`, payload)
 
@@ -575,7 +578,7 @@ const UserForm = () => {
                           onChange={handlePhotoChange}
                         />
                       </Button>
-                      {(photoPreview || photoFile) && ( // Muestra el botón de eliminar si hay preview (URL o Base64) o un archivo cargado
+                      {(photoPreview || photoFile) && ( 
                         <IconButton
                           size="small"
                           onClick={handleRemovePhoto}
@@ -615,55 +618,45 @@ const UserForm = () => {
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <FormControl fullWidth error={!!errors.role} required>
-                  <InputLabel>{t("user.role")}</InputLabel>
-                  <Select
-                    value={accountData.role}
-                    label={t("users.role")}
-                    onChange={(e) => setAccountData({ ...accountData, role: e.target.value })}
-                  >
-                    {currentUserRole === "global-admin"
-                      ? ["student", "professor", "admin", "global-admin"].map((r) => (
-                          <MenuItem key={r} value={r}>
-                            {t(`user.roles.${r}`)}
-                          </MenuItem>
-                        ))
-                      : ["student", "professor", "admin"].map((r) => (
-                          <MenuItem key={r} value={r}>
-                            {t(`user.roles.${r}`)}
-                          </MenuItem>
-                        ))}
-                  </Select>
-                  {errors.role && (
-                    <FormHelperText>
-                      <span>{t(errors.role)}</span>
-                    </FormHelperText>
+                <Autocomplete
+                  options={currentUserRole === "global-admin" 
+                    ? ["student", "professor", "admin", "global-admin"] 
+                    : ["student", "professor", "admin"]}
+                  getOptionLabel={(option) => t(`user.roles.${option}`)} 
+                  value={accountData.role || null}
+                  onChange={(e, value) => handleAccountDataChange("role", value || "")}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={t("user.role")}
+                      error={!!errors.role}
+                      helperText={errors.role && <span>{t(errors.role)}</span>}
+                      required
+                    />
                   )}
-                </FormControl>
+                  disableClearable
+                />
               </Grid>
 
               {accountData.role !== "global-admin" && (
                 <Grid item xs={12}>
-                  <FormControl fullWidth error={!!errors.universityId} required>
-                    <InputLabel>{t("universities.uni")}</InputLabel>
-                    <Select
-                      value={accountData.universityId || "kk"}
-                      label={t("universities.uni")}
-                      onChange={(e) => handleAccountDataChange("universityId", e.target.value)}
-                      disabled={currentUserRole !== "global-admin"}
-                    >
-                      {universities.map((university) => (
-                        <MenuItem key={university._id} value={university._id}>
-                          {university.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {errors.universityId && (
-                      <FormHelperText>
-                        <span>{t(errors.universityId)}</span>
-                      </FormHelperText>
+                  <Autocomplete
+                    options={universities}
+                    getOptionLabel={(option) => option.name}
+                    value={universities.find(u => u._id === accountData.universityId) || null}
+                    onChange={(e, value) => handleAccountDataChange("universityId", value?._id || "")}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label={t("universities.uni")}
+                        error={!!errors.universityId}
+                        helperText={errors.universityId && <span>{t(errors.universityId)}</span>}
+                        required
+                        disabled={currentUserRole !== "global-admin"}
+                      />
                     )}
-                  </FormControl>
+                    disabled={currentUserRole !== "global-admin"}
+                  />
                 </Grid>
               )}
 
