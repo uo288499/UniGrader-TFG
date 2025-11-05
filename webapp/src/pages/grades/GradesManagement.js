@@ -248,12 +248,12 @@ const GradesManagement = () => {
   }, [errorKey, successKey, t]);
 
   const handleGradeChange = (itemId, value) => {
-    const val = value === "" ? "" : Math.max(0, Math.min(10, parseFloat(value)));
+    const val = value === "" ? "" : Math.max(0, Math.min(10, Number.parseFloat(value)));
     setGrades((prev) => ({ ...prev, [itemId]: val }));
   };
 
   const handleFinalGradeChange = (value) => {
-    const val = value === "" ? "" : Math.max(0, Math.min(10, parseFloat(value)));
+    const val = value === "" ? "" : Math.max(0, Math.min(10, Number.parseFloat(value)));
     setFinalGrade((prev) => ({ ...prev, value: val }));
   };
 
@@ -289,7 +289,7 @@ const GradesManagement = () => {
 
         let groupWeighted = 0;
         typeItems.forEach((i) => {
-          const val = parseFloat(grades[i._id]) || 0;
+          const val = Number.parseFloat(grades[i._id]) || 0;
           groupWeighted += val * (i.weight / 100);
           if (i.minGrade != null && val < i.minGrade) allPassed = false;
         });
@@ -304,7 +304,7 @@ const GradesManagement = () => {
         studentId: selectedStudent._id,
         courseId: selectedCourse._id,
         academicYearId: (selectedCourse.academicYearId || selectedCourse.academicYear)?._id || null,
-        value: parseFloat(weighted.toFixed(2)),
+        value: Number.parseFloat(weighted.toFixed(2)),
         evaluationPeriod: "Ordinary",
         isPassed: weighted >= 5,
       });
@@ -327,7 +327,7 @@ const GradesManagement = () => {
         studentId: selectedStudent._id,
         courseId: selectedCourse._id,
         academicYearId: (selectedCourse.academicYearId || selectedCourse.academicYear)?._id || null,
-        value: parseFloat(finalGrade.value),
+        value: Number.parseFloat(finalGrade.value),
         evaluationPeriod: "Extraordinary",
         isPassed: finalGrade.value >= 5,
       });
@@ -599,7 +599,7 @@ const GradesManagement = () => {
 
                   let groupWeighted = 0;
                   typeItems.forEach((i) => {
-                    const val = parseFloat(grades[i._id]) || 0;
+                    const val = Number.parseFloat(grades[i._id]) || 0;
                     groupWeighted += val * (i.weight / 100);
                     if (i.minGrade != null && val < i.minGrade) allPassed = false;
                   });

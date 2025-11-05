@@ -379,7 +379,7 @@ const Users = () => {
           onPageChange={(e, newPage) => setPage(newPage)}
           rowsPerPage={rowsPerPage}
           onRowsPerPageChange={(e) => {
-            setRowsPerPage(parseInt(e.target.value, 10));
+            setRowsPerPage(Number.parseInt(e.target.value, 10));
             setPage(0);
           }}
           rowsPerPageOptions={[5, 10, 25]}

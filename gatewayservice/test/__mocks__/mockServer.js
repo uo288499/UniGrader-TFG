@@ -29,7 +29,7 @@ app.get("/academic/test", (req, res) => {
 
 // Eval service status relay
 app.get("/eval/status/:status", (req, res) => {
-  res.status(parseInt(req.params.status)).json({ status: req.params.status });
+  res.status(Number.parseInt(req.params.status)).json({ status: req.params.status });
 });
 
 // Simulate proxied failure

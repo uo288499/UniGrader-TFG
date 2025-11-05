@@ -155,7 +155,7 @@ const EvaluationTypes = () => {
           page={page}
           onPageChange={(e, newPage) => setPage(newPage)}
           rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+          onRowsPerPageChange={(e) => { setRowsPerPage(Number.parseInt(e.target.value, 10)); setPage(0); }}
           rowsPerPageOptions={[5, 10, 25]}
           labelRowsPerPage={t("rowsPage")}
           labelDisplayedRows={({ from, to, count }) =>

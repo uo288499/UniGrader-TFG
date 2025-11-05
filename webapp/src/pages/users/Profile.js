@@ -30,7 +30,7 @@ const fileToBase64 = (file) => {
     const reader = new FileReader()
     reader.readAsDataURL(file)
     reader.onload = () => resolve(reader.result)
-    reader.onerror = (error) => reject(error)
+    reader.onerror = () => reject(new Error('Failed to read file'))
   })
 }
 

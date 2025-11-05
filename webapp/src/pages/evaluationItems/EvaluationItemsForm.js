@@ -163,7 +163,7 @@ const EvaluationItemsForm = () => {
       }
 
       // --- Weight validation ---
-      if (item.weight === null || item.weight === undefined || isNaN(item.weight)) {
+      if (item.weight === null || item.weight === undefined || Number.isNaN(item.weight)) {
         newErrors[idx].weight = "evaluationItem.error.weightRequired";
       } else if (item.weight <= 0 || item.weight > 100) {
         newErrors[idx].weight = "evaluationItem.error.weightInvalid";
@@ -171,7 +171,7 @@ const EvaluationItemsForm = () => {
 
       // --- Minimum grade validation ---
       if (item.minGrade !== null && item.minGrade !== undefined) {
-        if (isNaN(item.minGrade)) {
+        if (Number.isNaN(item.minGrade)) {
           newErrors[idx].minGrade = "evaluationItem.error.minGradeRequired";
         } else if (item.minGrade < 0 || item.minGrade > 10) {
           newErrors[idx].minGrade = "evaluationItem.error.minGradeInvalid";

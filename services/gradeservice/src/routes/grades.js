@@ -216,8 +216,8 @@ module.exports = (app) => {
           // Validar nota
           let gradeValue = null;
           if (gradeValueRaw !== "") {
-            const parsed = parseFloat(gradeValueRaw);
-            if (isNaN(parsed) || parsed < 0 || parsed > 10) {
+            const parsed = Number.parseFloat(gradeValueRaw);
+            if (Number.isNaN(parsed) || parsed < 0 || parsed > 10) {
               rowErrors.push({
                 line: index + 1,
                 data: gradeValueRaw,
@@ -272,7 +272,7 @@ module.exports = (app) => {
           studentId: student._id,
           courseId: course._id,
           academicYearId: course.academicYearId._id,
-          value: parseFloat(finalOrdinary.toFixed(2)),
+          value: Number.parseFloat(finalOrdinary.toFixed(2)),
           evaluationPeriod: "Ordinary",
           isPassed: finalOrdinary >= 5,
         });
@@ -280,8 +280,8 @@ module.exports = (app) => {
         // --- Nota extraordinaria ---
         const extraordinaryValueRaw = row.extraordinary?.trim?.();
         if (extraordinaryValueRaw !== "") {
-          const extraordinaryValue = parseFloat(extraordinaryValueRaw);
-          if (isNaN(extraordinaryValue) || extraordinaryValue < 0 || extraordinaryValue > 10) {
+          const extraordinaryValue = Number.parseFloat(extraordinaryValueRaw);
+          if (Number.isNaN(extraordinaryValue) || extraordinaryValue < 0 || extraordinaryValue > 10) {
             errors.push({
               line: index + 1,
               data: extraordinaryValueRaw,

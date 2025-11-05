@@ -354,7 +354,7 @@ module.exports = (app) => {
         }
 
         // Email inválido
-        const emailRegex = /\S+@\S+\.\S+/;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
           errors.push({
             line: index + 1,

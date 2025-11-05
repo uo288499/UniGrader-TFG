@@ -154,14 +154,14 @@ const SubjectForm = () => {
         }
 
         // Min validation
-        if (rule.minPercentage === "" || rule.minPercentage === null) {
+        if (rule.minPercentage === null) {
             newErrors[`min_${idx}`] = "subject.error.minRequired";
         } else if (rule.minPercentage < 0 || rule.minPercentage > 100) {
             newErrors[`min_${idx}`] = "subject.error.minRange";
         }
 
         // Max validation
-        if (rule.maxPercentage === "" || rule.maxPercentage === null) {
+        if (rule.maxPercentage === null) {
             newErrors[`max_${idx}`] = "subject.error.maxRequired";
         } else if (rule.maxPercentage < 0 || rule.maxPercentage > 100) {
             newErrors[`max_${idx}`] = "subject.error.maxRange";
@@ -169,8 +169,8 @@ const SubjectForm = () => {
 
         // Individual coherence: min ≤ max
         if (
-            rule.minPercentage !== "" &&
-            rule.maxPercentage !== "" &&
+            rule.minPercentage !== null &&
+            rule.maxPercentage !== null &&
             rule.minPercentage > rule.maxPercentage
         ) {
             newErrors[`rule_${idx}`] = "subject.error.minGreaterThanMax";

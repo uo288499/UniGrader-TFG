@@ -245,7 +245,7 @@ const CourseForm = () => {
     ) {
       newErrors.maxGradeIfMinNotReached = "course.error.maxGradeIfMinNotReachedRequired";
     } else if (
-      isNaN(formData.maxGradeIfMinNotReached) ||
+      Number.isNaN(formData.maxGradeIfMinNotReached) ||
       formData.maxGradeIfMinNotReached < 0 ||
       formData.maxGradeIfMinNotReached > 10
     ) {
