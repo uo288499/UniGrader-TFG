@@ -567,6 +567,8 @@ const GradesManagement = () => {
 
                           <TextField
                             type="number"
+                            data-testid={`grade-input-${item._id}`}
+                            label={t("grade")}
                             inputProps={{ min: 0, max: 10, step: 0.1 }}
                             size="small"
                             value={grades[item._id] ?? ""}

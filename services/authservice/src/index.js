@@ -101,6 +101,45 @@ const createGlobalAdminIfMissing = async () => {
         role: "global-admin",
       });
 
+      if (process.env.NODE_ENV === 'test') {
+        const testPassword = await argon2.hash(
+          "Contra.1",
+          config.crypt
+        );
+
+        const testUser = await User.create({
+          identityNumber: "33333333Z",
+          name: "Test",
+          firstSurname: "Testez",
+          secondSurname: "Testinez",
+          photoUrl: "",
+        });
+
+        await EmailAccount.create({
+          email: "admin@test.com",
+          password: testPassword,
+          userId: testUser._id,
+          universityId: null,
+          role: "admin",
+        });
+
+        await EmailAccount.create({
+          email: "professor@test.com",
+          password: testPassword,
+          userId: testUser._id,
+          universityId: null,
+          role: "professor",
+        });
+
+        await EmailAccount.create({
+          email: "student@test.com",
+          password: testPassword,
+          userId: testUser._id,
+          universityId: null,
+          role: "student",
+        });
+      }
+
       console.log("Global admin account created successfully!");
     } else {
       console.log("Global admin account already exists. Skipping creation.");

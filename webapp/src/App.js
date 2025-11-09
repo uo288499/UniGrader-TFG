@@ -56,11 +56,11 @@ function App({ themeMode, setThemeMode, isLargeTextMode, setIsLargeTextMode }) {
           {/* Home Page */}
           <Route path="/" element={<PrivateRoute element={<Home themeMode={themeMode} />} />} />
           {/* Login Page */}
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<PrivateRoute element={<Login />} logged={true}/>} />
           {/* Forgot Password Page */}
-          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/forgot-password" element={<PrivateRoute element={<ForgotPassword />} logged={true}/>} />
           {/* Reset Password Page */}
-          <Route path="/reset-password/:token" element={<ResetPassword />} />
+          <Route path="/reset-password/:token" element={<PrivateRoute element={<ResetPassword />} logged={true}/>} />
           {/* Universities Page */}
           <Route path="/universities" element={<PrivateRoute element={<Universities />} roles={["global-admin"]}/>} />
           <Route path="/universities/new" element={<PrivateRoute element={<UniversityForm /> } roles={["global-admin"]} />} />

@@ -348,8 +348,8 @@ const UserForm = () => {
             }, 0)
           }
         }
+        setSuccessKey(isEditing ? "users.updated" : "users.created");
       }
-      setSuccessKey(isEditing ? "users.updated" : "users.created");
       setTimeout(() => setSuccessKey(""), 2000)
     } catch (err) {
       const key = "error." + (err.response?.data?.errorKey || "genericError")

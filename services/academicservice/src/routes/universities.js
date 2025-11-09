@@ -183,7 +183,7 @@ module.exports = (app) => {
       if (!university) return res.status(404).json({ success: false, errorKey: "notFound" });
 
       try {
-        const accountsRes = await axios.get(`${AUTH_URL}/public/accounts`);
+        const accountsRes = await axios.get(`${AUTH_URL}/accounts`);
         const linkedAccounts = (accountsRes.data.accounts || []).filter(
           // @ts-ignore
           (acc) => String(acc.universityId) === String(req.params.id)

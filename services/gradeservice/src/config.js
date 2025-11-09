@@ -4,5 +4,5 @@ const pkg = require("../package.json");
 module.exports = {
   name: `${pkg.name}@${pkg.version}`,
   port: Number(process.env.PORT ?? 8004),
-  mongoUri: process.env.MONGODB_URI ?? "mongodb://localhost:27017/unigrader_grade",
+  mongoUri: process.env.MONGODB_URI ? `${process.env.MONGODB_URI}unigrader_grade` : "mongodb://localhost:27017/unigrader_grade",
 };

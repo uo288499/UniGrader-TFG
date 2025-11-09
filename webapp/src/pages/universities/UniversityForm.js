@@ -125,7 +125,7 @@ const UniversityForm = () => {
     
   }, [errorKey, successKey, t]);
 
-    const validateForm = () => {
+  const validateForm = () => {
     const newErrors = {};
 
     if (!formData.name.trim()) {

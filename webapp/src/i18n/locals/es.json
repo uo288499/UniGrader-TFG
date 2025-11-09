@@ -10,6 +10,7 @@
     "grayscale": "Escala de grises",
     "largeText": "Texto grande"
   },
+  "grade": "Nota",
   "line": "línea",
   "sourceCode": "Código Fuente",
   "home": "Inicio",
@@ -71,7 +72,7 @@
     "professorNotFound": "El profesor no existe.",
     "professorAlreadyInThisGroup": "El profesor ya está en este grupo.",
     "studentNotFound": "El estudiante no existe.",
-    "studentNotEnrolled": "El estudiante no está matricualdo al programa de estudio de esta asignatura.",
+    "studentNotEnrolled": "El estudiante no está matriculado al programa de estudio de esta asignatura.",
     "studentAlreadyInGroup": "El estudiante ya pertenece a otro grupo del mismo curso.",
     "studentAlreadyInThisGroup": "El estudiante ya está en este grupo.",
     "studyProgramNotFound": "El programa de estudio no existe.",
@@ -260,8 +261,8 @@
       "typeRequired": "El tipo de programa es obligatorio."
     },
     "success": {
-      "created": "Programa de estudio creado exitosamente.",
-      "updated": "Programa de estudio actualizado exitosamente.",
+      "created": "Programa de estudio creado correctamente.",
+      "updated": "Programa de estudio actualizado correctamente.",
       "deleted": "Programa de estudio eliminado correctamente."
     }
   },
@@ -286,8 +287,8 @@
       "endBeforeStart": "La fecha de fin no puede ser anterior a la fecha de inicio"
     },
     "success": {
-      "created": "Año académico creado exitosamente.",
-      "updated": "Año académico actualizado exitosamente.",
+      "created": "Año académico creado correctamente.",
+      "updated": "Año académico actualizado correctamente.",
       "deleted": "Año académico eliminado correctamente."
     }
   },
@@ -301,7 +302,7 @@
     "confirmDelete": "¿Estás seguro de que deseas eliminar este tipo de evaluación?",
     "error": {
       "nameRequired": "El nombre del tipo es obligatorio.",
-      "nameLength": "El nombre debe tener al menos 3 carácteres.",
+      "nameLength": "El nombre debe tener al menos 3 caracteres.",
       "nameMax": "El nombre no puede superar los 50 caracteres."
     },
     "success": {
@@ -474,7 +475,7 @@
     "csvHelp": "Formato: incluye cabeceras. La primera columna debe ser 'email', y la última 'extraordinary', no importando el resto de cabeceras. Cada fila debe comenzar con el correo electrónico del alumno y continuar con grupos de tres columnas por cada ítem evaluable: (1) nombre del ítem, (2) tipo de evaluación al que pertenece, y (3) nota. Al final de la fila iría una última columna con la nota extraordinaria final. Ejemplo: 'alumno@correo.es; Examen 1; Teoría; 7.5; Práctica 1; Laboratorio; 9; 8.25'. Los campos de notas pueden ir vacíos. Se recomienda usar ';' como separador, aunque otros delimitadores válidos (',', tabulación, '|') también son aceptados.",
     "importCSV": "Importar notas (CSV)",
     "title": "Gestión de Calificaciones",
-    "selectCourse": "Seleccionar Curso",
+    "selectCourse": "Seleccionar Asignatura",
     "selectGroup": "Seleccionar Grupo",
     "unnamedGroup": "Grupo Sin Nombre",
     "selectStudent": "Seleccionar Estudiante",

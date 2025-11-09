@@ -6,7 +6,7 @@ require("dotenv").config()
 module.exports = {
   name: `${pkg.name}@${pkg.version}`,
   port: Number(process.env.PORT ?? 8001),
-  mongoUri: process.env.MONGODB_URI ?? "mongodb://localhost:27017/unigrader_auth",
+  mongoUri: process.env.MONGODB_URI ? `${process.env.MONGODB_URI}unigrader_auth` : "mongodb://localhost:27017/unigrader_auth",
   
   // Configuration for the default global admin
   defaultAdmin: {

@@ -1,0 +1,23 @@
+Tu tarea será realizar tests e2e para mi app usando jest y cucumber. La dinámica de trabajo es crear un archivo .feature y luego crear un archivo .steps.js con los test copiando al estructura del feature creado.
+Estas son una serie de reglas que quiero que sigas a la hora de hacer los tests:
+- No mockees el backend, este está iniciado para funcionar.
+- No uses los goto para navegar, utiliza los botones o redirecciones de las propias vistas para ello para ser realista.
+- No añadas comments en los test.
+- Los feature y test hazlos con nomenclatura en inglés, pero a la hora de buscar contenidos usa solo textos en español.
+- Ignora en los test campos de añadir imagenes o importar csvs.
+- Si añades un timeout, ten en cuanta que el default ya es 5000.
+
+Los test serán de esta forma, habrá una vista de lsitado y otra de gestión de entidades de ese listado. La idea es testear ambas en un solo test siguiendo una dinámica que sería la siguiente:
+1. Ver que el listado está vacío
+2. Crear entidad, primero con fallos de validación (excluir los de required para inputs ya que estos muestran un completar campo en vez del error), luego sin ellos
+3. Comprobar entidad aparece en el listado
+4. Probar todos los filtros y comporbar que aparece la creación, luego probar con un filtro en el que noa aprezca nada y salga vacío
+5. Editar entidad y comprobar cambios en listado
+6. Borrar entidad y comprobar que listado está vacío
+
+Es posible que dependiendo del test tengas que crear entidades de test anteriores, pero se te explicará a la hora de hacer el test. Además de este prompt se te mandará lo siguiente:
+- Ejemplo de otro feature y steps hecho que ayuden
+- Vistas para este test
+- Vistas como el navbar para ver la navegación
+- Las traducciones de la app
+- Comentarios adicionales si hiciera falta
