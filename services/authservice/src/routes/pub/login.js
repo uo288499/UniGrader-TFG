@@ -29,9 +29,8 @@ module.exports = (app) => {
       const email = req.body.email.toString();
       const password = req.body.password.toString();
       const account = await EmailAccount.findOne({ email }).populate('userId');
-
       if (
-        account != null &&
+        account != null && account.password &&
         (await argon2.verify(account.password || "", password, config.crypt))
       ) {
         // Successful login, create JWT token with relevant user data

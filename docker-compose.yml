@@ -72,7 +72,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       MONGODB_URI: mongodb://mongodb:27017/
       ACADEMIC_URL: http://academicservice:8002
-      APP_BASE_URL: http://TODO:3000
+      APP_BASE_URL: http://localhost
       ADMIN_PASS: ${ADMIN_PASS}
       ADMIN_EMAIL: ${ADMIN_EMAIL}
       EMAIL_PASSWORD: ${EMAIL_PASSWORD}

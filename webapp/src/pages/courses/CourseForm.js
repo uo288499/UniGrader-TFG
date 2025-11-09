@@ -170,7 +170,7 @@ const CourseForm = () => {
 
   useEffect(() => {
     const fetchPolicyForSubject = async () => {
-      if (!formData.subjectId) return;
+      if (!formData.subjectId || isEditing) return;
 
       const subj = subjects.find((s) => s._id === formData.subjectId);
       if (!subj || !subj.evaluationPolicyId) {

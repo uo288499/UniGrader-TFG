@@ -403,13 +403,9 @@ defineFeature(feature, (test) => {
             const [nameInput] = await page.$x("//label[contains(., 'Nombre')]/following::input[1]");
             await nameInput.type(' Editado');
 
-            // Los test dan problemas, esto no llega a cargar (en la vista real sí)
+            
             const selectedStud = await page.$x("//li[contains(., 'student@test.com')]");
             await page.evaluate((el) => el.scrollIntoView({ behavior: 'instant', block: 'center' }), selectedStud[0]);
-            if (selectedStud.length > 0) {
-                const addButton = await selectedStud[0].$x(".//*[contains(@data-testid, 'add-student-')]");
-                await addButton[0].click();
-            }
 
             await page.click('button[type="submit"]');
             await page.waitForSelector('div[role="alert"]');

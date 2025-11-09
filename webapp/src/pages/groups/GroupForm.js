@@ -168,7 +168,9 @@ const GroupForm = () => {
           !assignedIds.includes(s.id) || allowedIds.includes(s.id)
         );
 
-        setForm(prev => ({ ...prev, students: [] }));
+        if (!isEditing) {
+          setForm(prev => ({ ...prev, students: [] }));
+        }
         setStudents(available);
       } catch (err) {
         console.error("Error filtering students:", err);
