@@ -204,7 +204,7 @@ const NavBar = ({ themeMode, setThemeMode, isLargeTextMode, setIsLargeTextMode }
                 <Avatar
                   src={userData?.photoUrl}
                   alt={userData?.name}
-                  sx={{ width: 36, height: 36, bgcolor: "primary.main" }}
+                  sx={{ width: 36, height: 36, bgcolor: "grey.700" }}
                 >
                   {!userData?.photoUrl &&
                     `${userData?.name?.[0] ?? ""}${userData?.firstSurname?.[0] ?? ""}`}
