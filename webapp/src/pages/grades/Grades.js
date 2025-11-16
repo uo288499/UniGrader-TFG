@@ -367,9 +367,9 @@ const Grades = () => {
                                       <Table size="small">
                                         <TableHead>
                                           <TableRow>
-                                            <TableCell sx={{ fontWeight: "bold" }}>{t("gradesManagement.title")}</TableCell>
+                                            <TableCell sx={{ fontWeight: "bold" }}>{t("evaluationItem.name")}</TableCell>
                                             <TableCell sx={{ fontWeight: "bold" }}>{t("evaluationItem.weight")}</TableCell>
-                                            <TableCell sx={{ fontWeight: "bold" }}>{t("grades.finalGrade")}</TableCell>
+                                            <TableCell sx={{ fontWeight: "bold" }}>{t("grade")}</TableCell>
                                             <TableCell sx={{ fontWeight: "bold" }}>{t("evaluationItem.minGrade")}</TableCell>
                                           </TableRow>
                                         </TableHead>
