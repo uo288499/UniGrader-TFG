@@ -36,7 +36,7 @@ describe("Footer Component", () => {
       </SessionContext.Provider>
     );
     const logoGray = screen.getByAltText("UniGrader logo");
-    expect(logoGray).toHaveAttribute("src", "/images/UniGrader_Gray.svg");
+    expect(logoGray).toHaveAttribute("src", "/images/UniGrader_gray.svg");
   });
 
   test("renders GitHub link with correct href", () => {

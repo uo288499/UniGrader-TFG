@@ -54,7 +54,7 @@ describe("Home Page", () => {
     });
 
     const logo = screen.getByAltText("UniGrader Logo");
-    expect(logo).toHaveAttribute("src", "/images/UniGrader_Gray.svg");
+    expect(logo).toHaveAttribute("src", "/images/UniGrader_gray.svg");
   });
 
   it("fetches and displays university logo when available", async () => {
