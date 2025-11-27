@@ -518,14 +518,25 @@ const SubjectForm = () => {
                 <Typography variant="h5" fontWeight="bold" gutterBottom>
                   {t("subject.evaluationPolicy")}
                 </Typography>
-
-                {errors.policyRules && (
-                    <Grid item xs={12} sx={{ mb: 2 }}>
-                        <Alert severity="error">{t(errors.policyRules)}</Alert>
-                    </Grid>
-                )}
               </Grid>
 
+              {errors.policyRules && (
+                  <Grid item xs={12} sx={{ mb: 2 }}>
+                      <Alert severity="error">{t(errors.policyRules)}</Alert>
+                  </Grid>
+              )}
+
+              {errors.policyGlobalMin && (
+                  <Grid item xs={12} sx={{ mb: 2 }}>
+                      <Alert severity="error">{t(errors.policyGlobalMin)}</Alert>
+                  </Grid>
+              )}
+
+              {errors.policyGlobalMax && (
+                  <Grid item xs={12} sx={{ mb: 2 }}>
+                      <Alert severity="error">{t(errors.policyGlobalMax)}</Alert>
+                  </Grid>
+              )}
               {policyData.policyRules.map((rule, idx) => (
                 <Grid item xs={12} key={idx}>
                   <Box display="flex" gap={2} flexWrap="wrap">

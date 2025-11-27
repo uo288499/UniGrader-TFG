@@ -139,6 +139,9 @@ services:
       PORT: 8004
       NODE_ENV: production
       MONGODB_URI: mongodb://mongodb:27017/
+      AUTH_URL: http://authservice:8001
+      ACADEMIC_URL: http://academicservice:8002
+      EVAL_URL: http://evalservice:8003
 
   auditservice:
     container_name: auditservice-UniGrader

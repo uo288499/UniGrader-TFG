@@ -54,7 +54,7 @@ const Home = ({ themeMode }) => {
 
   // Logo de UniGrader
   const uniGraderLogo =
-    themeMode === "grayscale" ? "/images/UniGrader_Gray.svg" : "/images/UniGrader.svg";
+    themeMode === "grayscale" ? "/images/UniGrader_gray.svg" : "/images/UniGrader.svg";
 
   return (
     <Box data-testid="home-page"

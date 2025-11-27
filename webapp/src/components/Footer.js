@@ -38,7 +38,7 @@ const Footer = ({ themeMode }) => {
 
   const uniGraderLogo =
     themeMode === "grayscale"
-      ? "/images/UniGrader_Gray.svg"
+      ? "/images/UniGrader_gray.svg"
       : "/images/UniGrader.svg";
 
   return (
